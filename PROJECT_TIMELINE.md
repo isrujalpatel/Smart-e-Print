@@ -14,9 +14,9 @@
 
 | Week | Dates (2026) | Theme | Primary Deliverable | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **1** | July 2 – July 9 | Problem Definition Selection | Problem statement identified and initial shop survey completed | ☐ |
-| **2** | July 9 – July 16 | Approvals | Client approval & official project definition approval | ☐ |
-| **3** | July 16 – July 23 | Proposal Submission | Project proposal finalized and submitted | ☐ |
+| **1** | July 2 – July 9 | Problem Definition Selection | Problem statement identified and initial shop survey completed |✅|
+| **2** | July 9 – July 16 | Approvals | Client approval & official project definition approval | ✅ |
+| **3** | July 16 – July 23 | Proposal Submission | Project proposal finalized and submitted | ✅ |
 | **4** | July 23 – July 30 | Requirements & System Architecture | Requirements specification, architecture design & UI/UX wireframes | ☐ |
 | **5** | July 30 – August 6 | Database & Authentication | Database schema design, JWT auth & role-based access control | ☐ |
 | **6** | August 6 – August 13 | Document Parsing Engine | PDF page extraction, image handler & file validation engine | ☐ |
