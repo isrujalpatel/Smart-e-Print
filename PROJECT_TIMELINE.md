@@ -14,18 +14,18 @@
 
 | Week | Dates (2026) | Theme | Primary Deliverable | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **1** | July 2 – July 9 | Problem Definition Selection | Problem statement identified and initial shop survey completed |✅|
-| **2** | July 9 – July 16 | Approvals | Client approval & official project definition approval | ✅ |
-| **3** | July 16 – July 23 | Proposal Submission | Project proposal finalized and submitted | ✅ |
-| **4** | July 23 – July 30 | Requirements & System Architecture | Requirements specification, architecture design & UI/UX wireframes | ☐ |
-| **5** | July 30 – August 6 | Database & Authentication | Database schema design, JWT auth & role-based access control | ☐ |
-| **6** | August 6 – August 13 | Document Parsing Engine | PDF page extraction, image handler & file validation engine | ☐ |
-| **7** | August 13 – August 20 | Dynamic Pricing Engine | Automated price calculation based on paper size, B&W/Color & page counts | ☐ |
-| **8** | August 20 – August 27 | Customer Portal | Document upload, print customization UI & real-time order tracking | ☐ |
-| **9** | August 27 – September 3 | Owner / Admin Dashboard | Request verification, accept/reject workflow with reason input & print queue | ☐ |
-| **10** | September 3 – September 10 | Payments & Real-Time Sync | Cash/Online payment gateway integration & real-time status updates | ☐ |
-| **11** | September 10 – September 17 | Business Analytics & Reporting | Daily/Monthly revenue dashboard & exportable print volume reports | ☐ |
-| **12** | September 17 – September 24 | Testing, UAT & Handover | End-to-end testing, shop owner UAT & final system deployment | ☐ |
+| **1** | July 6 – July 12 | Problem Definition Selection | Problem statement identified and initial shop survey completed |✅|
+| **2** | July 13 – July 19 | Approvals | Client approval & official project definition approval | ✅ |
+| **3** | July 20 – July 26 | Proposal Submission | Project proposal finalized and submitted | ✅ |
+| **4** | July 27 – August 2 | Requirements & System Architecture | Requirements specification, architecture design & UI/UX wireframes | ☐ |
+| **5** | August 3 – August 9 | Database & Authentication | Database schema design, JWT auth & role-based access control | ☐ |
+| **6** | August 10 – August 16 | Document Parsing Engine | PDF page extraction, image handler & file validation engine | ☐ |
+| **7** | August 17 – August 23 | Dynamic Pricing Engine | Automated price calculation based on paper size, B&W/Color & page counts | ☐ |
+| **8** | August 24 – August 30 | Customer Portal | Document upload, print customization UI & real-time order tracking | ☐ |
+| **9** | August 30 – September 6 | Owner / Admin Dashboard | Request verification, accept/reject workflow with reason input & print queue | ☐ |
+| **10** | September 7 – September 13 | Payments & Real-Time Sync | Cash/Online payment gateway integration & real-time status updates | ☐ |
+| **11** | September 14 – September 20 | Business Analytics & Reporting | Daily/Monthly revenue dashboard & exportable print volume reports | ☐ |
+| **12** | September 21 – September 27 | Testing, UAT & Handover | End-to-end testing, shop owner UAT & final system deployment | ☐ |
 
 ---
 
@@ -34,23 +34,27 @@
 ```mermaid
 gantt
     title Smart E-Printing Software Development Schedule (12 Weeks)
-    dateFormat  YYYY-MM-DD
-    section Phase 1: Planning & Specs
-    Problem Definition & Survey        :done, p1, 2026-07-02, 7d
-    Client Approvals                   :done, p2, 2026-07-09, 7d
-    Proposal Submission                :done, p3, 2026-07-16, 7d
-    Requirements & System Architecture :active, p4, 2026-07-23, 7d
-    section Phase 2: Core Architecture
-    Database Schema & JWT Auth         :p5, 2026-07-30, 7d
-    PDF Parsing & Validation Engine    :p6, 2026-08-06, 7d
-    Dynamic Pricing Engine             :p7, 2026-08-13, 7d
+    dateFormat YYYY-MM-DD
+
+    section Phase 1: Planning & Specifications
+    Problem Definition & Survey          :done, p1, 2026-07-06, 7d
+    Client Approvals                     :done, p2, 2026-07-13, 7d
+    Proposal Submission                  :done, p3, 2026-07-20, 7d
+    Requirements & System Architecture   :active, p4, 2026-07-27, 7d
+
+    section Phase 2: Core Development
+    Database Schema & JWT Authentication :p5, 2026-08-03, 7d
+    Document Parsing & Validation Engine :p6, 2026-08-10, 7d
+    Dynamic Pricing Engine               :p7, 2026-08-17, 7d
+
     section Phase 3: Portal & Features
-    Customer Upload & Order Tracking   :p8, 2026-08-20, 7d
-    Owner Dashboard & Request Queue    :p9, 2026-08-27, 7d
-    Payments & Real-Time Status Sync   :p10, 2026-09-03, 7d
+    Customer Portal & Order Tracking     :p8, 2026-08-24, 7d
+    Owner / Admin Dashboard              :p9, 2026-08-31, 7d
+    Payments & Real-Time Status Sync     :p10, 2026-09-07, 7d
+
     section Phase 4: Analytics & Delivery
-    Revenue Analytics & Reporting      :p11, 2026-09-10, 7d
-    System Integration, UAT & Handover :p12, 2026-09-17, 7d
+    Business Analytics & Reporting       :p11, 2026-09-14, 7d
+    Testing, UAT & Handover              :p12, 2026-09-21, 7d
 ```
 
 ---
