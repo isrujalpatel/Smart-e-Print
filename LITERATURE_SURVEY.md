@@ -30,7 +30,7 @@ Web-to-Print (W2P) systems have transformed commercial printing by migrating pri
 
 ### 2.2 Pricing Engine & Rate Cards
 - Dynamic pricing algorithms compute sub-totals based on variables:
-  $$\text{Total Cost} = (\text{Page Count} \times \text{Rate per Page (B&W/Color)}) \times \text{Copies}$$
+  $$\text{Total Cost} = (\text{Page Count} \times \text{Rate per Page (B/W/Color)}) \times \text{Copies}$$
 - Custom page range parsing ensures sub-ranges (e.g., `1-5, 8, 11-15`) accurately compute total pages printed.
 
 ### 2.3 Real-Time Notification & Order Tracking
