@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Smart e-Print</title>
+  <meta name="description" content="Sign in to Smart e-Print to manage your print orders." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-animated">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- ── Auth Card ─────────────────────────────────────────────────────────── -->
+  <div class="auth-page-wrap">
+    <div class="glass-card auth-card">
+
+      <!-- Logo -->
+      <div class="auth-logo">
+        <a href="index.html" style="text-decoration:none;">
+          <div class="brand-logo lg"></div>
+          <div class="brand-name gradient-text">Smart e-Print</div>
+          <div class="brand-sub">Umiya Graphics &amp; Printing</div>
+        </a>
+      </div>
+
+      <h1 class="auth-heading">Welcome back 👋</h1>
+      <p class="auth-subheading">Sign in to your account to continue</p>
+
+      <!-- Error Alert -->
+      <div id="formAlert" class="form-alert" role="alert"></div>
+
+      <!-- ── Login Form ──────────────────────────────────────────────────── -->
+      <form id="loginForm" novalidate autocomplete="on">
+
+        <!-- Email -->
+        <div class="form-floating-custom">
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="email"
+            autocomplete="email"
+            required
+          />
+          <label for="loginEmail"><i class="bi bi-envelope me-1"></i>Email address</label>
+        </div>
+
+        <!-- Password -->
+        <div class="form-floating-custom password-wrapper">
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="password"
+            autocomplete="current-password"
+            required
+          />
+          <label for="loginPassword"><i class="bi bi-lock me-1"></i>Password</label>
+          <button type="button" class="password-toggle" id="pwToggle" aria-label="Show/hide password">
+            <i class="bi bi-eye" id="pwToggleIcon"></i>
+          </button>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn-gradient w-100 mt-2" id="loginBtn"
+                style="height:50px;position:relative;">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </button>
+
+      </form>
+
+      <div class="auth-divider">or</div>
+
+      <p class="auth-link-text">
+        Don't have an account? <a href="register.html" id="goRegisterLink">Create one</a>
+      </p>
+
+    </div>
+  </div><!-- /.auth-page-wrap -->
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Already logged in? Skip this page.
+    redirectIfLoggedIn();
+
+    // Password toggle
+    initPasswordToggle('loginPassword', 'pwToggle', 'pwToggleIcon');
+
+    // ── Form submit ─────────────────────────────────────────────────────────
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      hideFormAlert('formAlert');
+
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn      = document.getElementById('loginBtn');
+
+      if (!email || !password) {
+        showFormError('formAlert', '⚠  Please fill in all fields.');
+        return;
+      }
+
+      setLoading(btn, true);
+      const { ok, data } = await loginUser(email, password);
+      setLoading(btn, false);
+
+      if (ok) {
+        setToken(data.token);
+        setStoredUser(data.user);
+        showToast('Welcome back, ' + data.user.name + '! 🎉');
+        setTimeout(() => redirectByRole(data.user.role), 800);
+      } else {
+        showFormError('formAlert', '✕  ' + (data.error || 'Login failed. Please try again.'));
+      }
+    });
+  </script>
+</body>
+</html>

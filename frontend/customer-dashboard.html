@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard — Smart e-Print</title>
+  <meta name="description" content="Smart e-Print customer dashboard — manage your print orders." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Ambient Background -->
+  <div class="bg-animated" style="opacity:.6;">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand-custom" style="font-size:1.1rem;">
+        <div class="brand-logo" style="width:30px;height:30px;border-radius:9px;"></div>
+        <div class="brand-name-wrap">
+          <span class="brand-name-main gradient-text" style="font-size:1rem;">Smart e-Print</span>
+          <span class="brand-name-sub">Umiya Graphics &amp; Printing</span>
+        </div>
+      </a>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li>
+        <a href="#" class="active" id="navDashboard">
+          <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+      </li>
+
+      <li><div class="nav-label">Print Orders</div></li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-file-earmark-arrow-up"></i> Upload &amp; Print
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-clock-history"></i> Order History
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-eye"></i> Track Order
+        </a>
+      </li>
+
+      <li><div class="nav-label">Account</div></li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-credit-card"></i> Payments
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-person-circle"></i> Profile
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar" style="background:linear-gradient(135deg,#06B6D4,#10B981);">?</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarUserName">Loading…</div>
+          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:#67E8F9;">Customer</div>
+        </div>
+      </div>
+      <a href="#" class="btn-outline-glass w-100" id="logoutBtn" style="font-size:.83rem;padding:9px 14px;">
+        <i class="bi bi-box-arrow-left"></i> Sign Out
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ══════════════════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">
+          Hello, <span class="gradient-text" id="welcomeName">there</span>! 👋
+        </h1>
+        <p class="dash-subtitle">Here's your print activity overview</p>
+      </div>
+      <span class="role-badge customer" style="margin-top:6px;">
+        <i class="bi bi-person"></i> Customer
+      </span>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(124,58,237,.1);">📄</div>
+          <div class="stat-value gradient-text">0</div>
+          <div class="stat-label">Total Orders</div>
+          <div class="stat-change neutral">No orders yet</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(16,185,129,.1);">✅</div>
+          <div class="stat-value" style="color:var(--accent);">0</div>
+          <div class="stat-label">Completed</div>
+          <div class="stat-change neutral">—</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(245,158,11,.1);">⏳</div>
+          <div class="stat-value" style="color:var(--warning);">0</div>
+          <div class="stat-label">Pending</div>
+          <div class="stat-change neutral">—</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(6,182,212,.1);">💰</div>
+          <div class="stat-value" style="color:var(--secondary);">₹0</div>
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-change neutral">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coming Soon Banner -->
+    <div class="coming-soon">
+      <span class="cs-emoji">🚀</span>
+      <h3>Print Features Coming Soon!</h3>
+      <p>
+        Document upload, print configuration, real-time order tracking,
+        and payment features are currently in active development.
+      </p>
+      <div class="cs-tags">
+        <span class="role-badge customer"><i class="bi bi-file-earmark-pdf"></i> PDF Upload</span>
+        <span class="role-badge customer"><i class="bi bi-sliders"></i> Print Config</span>
+        <span class="role-badge customer"><i class="bi bi-truck"></i> Order Tracking</span>
+        <span class="role-badge customer"><i class="bi bi-credit-card"></i> Payments</span>
+      </div>
+    </div>
+
+  </main><!-- /.main-content -->
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script>
+    // Initialize — verifies JWT, checks role, populates UI
+    initDashboard('customer');
+  </script>
+</body>
+</html>

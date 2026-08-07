@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owner Dashboard — Smart e-Print</title>
+  <meta name="description" content="Smart e-Print owner dashboard — manage orders and view analytics." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Ambient Background -->
+  <div class="bg-animated" style="opacity:.6;">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand-custom" style="font-size:1.1rem;">
+        <div class="brand-logo" style="width:30px;height:30px;border-radius:9px;"></div>
+        <div class="brand-name-wrap">
+          <span class="brand-name-main gradient-text" style="font-size:1rem;">Smart e-Print</span>
+          <span class="brand-name-sub">Umiya Graphics &amp; Printing</span>
+        </div>
+      </a>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li>
+        <a href="#" class="active" id="navDashboard">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+
+      <li><div class="nav-label">Order Management</div></li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-list-check"></i> Manage Orders
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-printer"></i> Print Queue
+        </a>
+      </li>
+
+      <li><div class="nav-label">Business</div></li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-bar-chart-line"></i> Analytics
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-cash-coin"></i> Revenue Reports
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-people"></i> Customers
+        </a>
+      </li>
+
+      <li><div class="nav-label">Settings</div></li>
+      <li>
+        <a href="#" class="nav-disabled" title="Coming soon">
+          <i class="bi bi-gear"></i> Shop Rates
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar"
+             style="background:linear-gradient(135deg,#7C3AED,#A78BFA);">?</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarUserName">Loading…</div>
+          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:#C4B5FD;">Owner</div>
+        </div>
+      </div>
+      <a href="#" class="btn-outline-glass w-100" id="logoutBtn"
+         style="font-size:.83rem;padding:9px 14px;">
+        <i class="bi bi-box-arrow-left"></i> Sign Out
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ══════════════════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">
+          Owner Dashboard 🏪
+        </h1>
+        <p class="dash-subtitle">
+          Welcome back, <span class="gradient-text" id="welcomeName">…</span>
+        </p>
+      </div>
+      <span class="role-badge owner" style="margin-top:6px;">
+        <i class="bi bi-shield-check"></i> Shop Owner
+      </span>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(124,58,237,.1);">📋</div>
+          <div class="stat-value gradient-text">0</div>
+          <div class="stat-label">Total Orders</div>
+          <div class="stat-change neutral">No orders yet</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(16,185,129,.1);">💰</div>
+          <div class="stat-value" style="color:var(--accent);">₹0</div>
+          <div class="stat-label">Today's Revenue</div>
+          <div class="stat-change neutral">—</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(245,158,11,.1);">⏳</div>
+          <div class="stat-value" style="color:var(--warning);">0</div>
+          <div class="stat-label">Pending Review</div>
+          <div class="stat-change neutral">—</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-icon-wrap" style="background:rgba(6,182,212,.1);">👥</div>
+          <div class="stat-value" style="color:var(--secondary);">0</div>
+          <div class="stat-label">Total Customers</div>
+          <div class="stat-change neutral">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coming Soon Banner -->
+    <div class="coming-soon">
+      <span class="cs-emoji">⚙️</span>
+      <h3>Management Features Coming Soon!</h3>
+      <p>
+        Order management, print job execution, revenue analytics with Chart.js,
+        shop rate configuration, and customer management are in active development.
+      </p>
+      <div class="cs-tags">
+        <span class="role-badge owner"><i class="bi bi-list-check"></i> Order Queue</span>
+        <span class="role-badge owner"><i class="bi bi-bar-chart"></i> Revenue Analytics</span>
+        <span class="role-badge owner"><i class="bi bi-gear"></i> Shop Rates</span>
+        <span class="role-badge owner"><i class="bi bi-printer"></i> Print Jobs</span>
+        <span class="role-badge owner"><i class="bi bi-people"></i> Customers</span>
+      </div>
+    </div>
+
+  </main><!-- /.main-content -->
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script>
+    // Initialize — verifies JWT, checks role === 'owner', populates UI
+    initDashboard('owner');
+  </script>
+</body>
+</html>

@@ -1,46 +1,107 @@
-# Smart E-Printing Software
+# Smart e-Print — Base Model Setup Guide
 
-A web-based digital print order management system built for **Umiya Graphics and Printing** (Owner: Mr. Manojbhai Patel).
-
----
-
-## 👥 Team Members
-- **Prince Patel** (24CS072)
-- **Manav Patel** (24CS067)
-- **Srujal Patel** (24CS076)
+## Tech Stack
+- **Frontend**: HTML + CSS + Bootstrap 5 + Vanilla JS
+- **Backend**: Python Flask + JWT Auth
+- **Database**: Supabase PostgreSQL
 
 ---
 
-## 📁 Initial Repository Structure & Core Documentation
+## 1. Supabase Database Setup
 
-The repository is structured with complete documentation and baseline setup:
-
-- 📄 **[README.md](./README.md)** – Overview and project quick-start guide.
-- 🎯 **[PROBLEM_STATEMENT.md](./PROBLEM_STATEMENT.md)** – Comprehensive problem definition, manual bottlenecks, and proposed solution.
-- 📚 **[LITERATURE_SURVEY.md](./LITERATURE_SURVEY.md)** – Research on Web-to-Print systems, technical component analysis, comparative matrix, and research gaps.
-- 📅 **[PROJECT_TIMELINE.md](./PROJECT_TIMELINE.md)** – Development schedule, Gantt chart, milestones, and task allocation.
-- 📋 **[REQUIREMENTS.md](./REQUIREMENTS.md)** – Detailed Functional (FR) and Non-Functional Requirements (NFR) for Customer and Owner roles.
-- 📑 **[PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)** – High-level project specifications summary.
-- 🙈 **[.gitignore](./.gitignore)** – Git ignore patterns for dependencies, upload storage, environment files, and OS artifacts.
+1. Go to [supabase.com](https://supabase.com) → create a project
+2. Navigate to **SQL Editor**
+3. Copy the contents of `database/schema.sql` and run it
+4. Go to **Settings → Database → Connection String (URI mode)**
+5. Copy the connection URI — you'll need it in the next step
 
 ---
 
-## 🚀 Key Features
+## 2. Backend Setup
 
-1. **Customer Features:**
-   - Remote PDF & Image document upload.
-   - Print configuration (Color / B&W, copies, custom page ranges, paper size).
-   - Instant automated price calculation.
-   - Dual payment options (Cash on pickup & Online payment gateway).
-   - Real-time order tracking and order history.
+```bash
+cd backend
 
-2. **Shop Owner / Admin Features:**
-   - Interactive order management dashboard.
-   - File verification & single-click Accept / Reject (with reason requirement).
-   - Shop rate card management.
-   - Automated business analytics: daily/monthly revenue & print volume reports.
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate       # Mac/Linux
+# venv\Scripts\activate         # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Open .env and fill in your values (DATABASE_URL, SECRET_KEY, JWT_SECRET_KEY)
+
+# Start the server
+python app.py
+# → Running on http://localhost:5000
+```
+
+The backend will automatically create database tables on first run.
 
 ---
 
-## 📌 Context & Guidelines
-For internal developer context, see [.agents/AGENTS.md](./.agents/AGENTS.md).
+## 3. Frontend Setup
+
+No build step needed — it's plain HTML/CSS/JS.
+
+```bash
+# Option 1: VS Code Live Server
+# Install "Live Server" extension → right-click index.html → Open with Live Server
+
+# Option 2: Python simple server
+cd frontend
+python3 -m http.server 5500
+# → http://localhost:5500
+```
+
+> **Important**: Make sure `js/config.js` has `API_BASE: 'http://localhost:5000/api'` during development.
+
+---
+
+## 4. API Endpoints
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET`  | `/api/health`        | ❌ | Server health check |
+| `POST` | `/api/auth/register` | ❌ | Register a new user |
+| `POST` | `/api/auth/login`    | ❌ | Login and get JWT |
+| `GET`  | `/api/auth/me`       | ✅ Bearer | Get current user |
+| `POST` | `/api/auth/logout`   | ✅ Bearer | Logout acknowledgement |
+
+### Register Request Body
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "mypassword",
+  "role": "customer"
+}
+```
+`role` must be `"customer"` or `"owner"`.
+
+---
+
+## 5. Deployment
+
+### Frontend → Vercel
+1. Push `frontend/` to GitHub
+2. Import to [vercel.com](https://vercel.com)
+3. Set root directory to `frontend`
+4. Update `js/config.js`: `API_BASE: 'https://your-render-app.onrender.com/api'`
+
+### Backend → Render
+1. Push `backend/` to GitHub
+2. Create a new **Web Service** on [render.com](https://render.com)
+3. Set **Build Command**: `pip install -r requirements.txt`
+4. Set **Start Command**: `gunicorn app:create_app()`  or `python app.py`
+5. Add environment variables (DATABASE_URL, SECRET_KEY, JWT_SECRET_KEY)
+
+---
+
+## Team
+- Prince Patel (24CS072)
+- Manav Patel (24CS067)
+- Srujal Patel (24CS076)
