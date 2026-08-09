@@ -47,7 +47,9 @@ logs/
 
 # Python
 venv/
+.venv/
 __pycache__/
+*.pyc
 *.py[cod]
 *.pyo
 *.pyd
