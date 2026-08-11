@@ -1,13 +1,18 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+import os
 from config import Config
 from extensions import db, bcrypt
 from routes.auth import auth_bp
+from routes.orders import orders_bp
 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # Upload storage path
+    app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'instance', 'uploads')
 
     # ── Extensions ─────────────────────────────────────────────────────────────
     CORS(app, resources={
@@ -22,6 +27,7 @@ def create_app(config_class=Config):
 
     # ── Blueprints ──────────────────────────────────────────────────────────────
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(orders_bp, url_prefix="/api/orders")
 
     # ── Health check ────────────────────────────────────────────────────────────
     @app.route("/api/health")

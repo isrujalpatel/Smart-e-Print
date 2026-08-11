@@ -17,7 +17,7 @@
 | **1** | July 6 – July 12 | Problem Definition Selection | Problem statement identified and initial shop survey completed |✅|
 | **2** | July 13 – July 19 | Approvals | Client approval & official project definition approval | ✅ |
 | **3** | July 20 – July 26 | Proposal Submission | Project proposal finalized and submitted | ✅ |
-| **4** | July 27 – August 2 | Requirements & System Architecture | Requirements specification, architecture design & UI/UX wireframes | ☐ |
+| **4** | July 27 – August 2 | Requirements & System Architecture | Requirements specification, architecture design & UI/UX wireframes | ✅ |
 | **5** | August 3 – August 9 | Database & Authentication | Database schema design, JWT auth & role-based access control | ☐ |
 | **6** | August 10 – August 16 | Document Parsing Engine | PDF page extraction, image handler & file validation engine | ☐ |
 | **7** | August 17 – August 23 | Dynamic Pricing Engine | Automated price calculation based on paper size, B&W/Color & page counts | ☐ |
