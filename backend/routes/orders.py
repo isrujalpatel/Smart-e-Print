@@ -1,7 +1,6 @@
 import os
 import re
 import uuid
-import imghdr
 from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, current_app
@@ -24,6 +23,15 @@ ALLOWED_MIME = {
 FILE_SIZE_LIMIT = 10 * 1024 * 1024
 PRICE_RATES = {"bw": 2.0, "color": 5.0}
 PAPER_MULTIPLIERS = {"A4": 1.0, "A3": 1.25, "Letter": 1.1}
+
+
+def _detect_image_type(file_header: bytes) -> str:
+    """Detect image type from file header signature (Python 3.13 compatible replacement for imghdr)"""
+    if file_header.startswith(b'\x89PNG'):
+        return 'png'
+    elif file_header.startswith(b'\xff\xd8\xff'):
+        return 'jpeg'
+    return None
 
 
 def _get_extension(filename: str) -> str:
@@ -57,7 +65,7 @@ def _validate_file(file_storage):
     else:
         header = file_storage.stream.read(512)
         file_storage.stream.seek(0)
-        kind = imghdr.what(None, header)
+        kind = _detect_image_type(header)
         if extension in {'jpg', 'jpeg'} and kind != 'jpeg':
             return "The uploaded image is not a valid JPEG file."
         if extension == 'png' and kind != 'png':
