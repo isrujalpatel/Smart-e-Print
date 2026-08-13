@@ -99,14 +99,14 @@ def logout(current_user):
 # ── Helper ───────────────────────────────────────────────────────────────────
 def _generate_token(user: User) -> str:
     """Encode a signed JWT for the given user."""
-    expiry = datetime.datetime.utcnow() + datetime.timedelta(
-        hours=Config.JWT_EXPIRATION_HOURS
-    )
+    now = datetime.datetime.utcnow()
+    expiry = now + datetime.timedelta(hours=Config.JWT_EXPIRATION_HOURS)
+    
     payload = {
-        "user_id": user.id,
+        "user_id": str(user.id),  # Convert UUID to string
         "email":   user.email,
         "role":    user.role,
-        "iat":     datetime.datetime.utcnow(),
-        "exp":     expiry,
+        "iat":     int(now.timestamp()),  # Convert datetime to Unix timestamp
+        "exp":     int(expiry.timestamp()),  # Convert datetime to Unix timestamp
     }
     return jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
