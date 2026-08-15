@@ -40,6 +40,8 @@ def create_app(config_class=Config):
     app.register_blueprint(orders_bp, url_prefix="/api/orders")
 
     # ── Health check ────────────────────────────────────────────────────────────
+    @app.route("/")
+    @app.route("/health")
     @app.route("/api/health")
     def health():
         return jsonify({"status": "ok", "message": "Smart e-Print API is running 🚀"})
