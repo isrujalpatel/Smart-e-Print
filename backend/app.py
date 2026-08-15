@@ -36,8 +36,12 @@ def create_app(config_class=Config):
 
     # ── Create tables on first run ───────────────────────────────────────────────
     with app.app_context():
-        db.create_all()
-        print("✅  Database tables ready")
+        try:
+            db.create_all()
+            print("✅  Database tables ready")
+        except Exception as e:
+            print(f"⚠️  Database connection failed on startup: {e}")
+            print("   Tables will be created when the database becomes available.")
 
     return app
 

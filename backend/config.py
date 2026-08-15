@@ -24,6 +24,11 @@ class Config:
         else {}
     )
 
+    # ── Supabase API Keys ──────────────────────────────────────────────────────
+    SUPABASE_URL = "https://rlboymsssxbqksevgxij.supabase.co"
+    SUPABASE_ANON_KEY = os.getenv("DATABASE_ANON", "")
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("DATABASE_SERVICE_ROLE", "")
+
     # ── JWT ─────────────────────────────────────────────────────────────────────
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-secret-key-change-in-production")
     JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
