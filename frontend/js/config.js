@@ -11,7 +11,7 @@ const CONFIG = {
   // Deployed:   https://your-backend-app.onrender.com/api
   API_BASE: window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
-    : 'http://localhost:5000/api',  // ← REPLACE with your deployed backend URL + /api
+    : 'https://smart-e-print.onrender.com/api',
 
   // localStorage keys (used to cache auth state in the browser — this is normal)
   TOKEN_KEY: 'seprint_token',
