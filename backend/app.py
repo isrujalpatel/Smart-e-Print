@@ -14,14 +14,24 @@ def create_app(config_class=Config):
     # Upload storage path
     app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'instance', 'uploads')
 
-    # ── Extensions ─────────────────────────────────────────────────────────────
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": "*",
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
-        }
-    })
+    # ── CORS — allow Vercel frontend to reach this backend ───────────────────
+    CORS(app,
+         origins=["https://smart-e-print.vercel.app", "http://localhost:5500",
+                   "http://127.0.0.1:5500", "http://localhost:5000"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization"],
+         supports_credentials=True)
+
+    # Guarantee CORS headers on every response (including errors)
+    @app.after_request
+    def add_cors_headers(response):
+        origin = response.headers.get("Access-Control-Allow-Origin")
+        if not origin:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        return response
+
     db.init_app(app)
     bcrypt.init_app(app)
 
