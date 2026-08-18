@@ -84,6 +84,20 @@ def create_app(config_class=Config):
             print(f"⚠️  Database connection failed on startup: {e}")
             print("   Tables will be created when the database becomes available.")
 
+        # ── Schema migration: add google_id + relax password_hash (idempotent) ──
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255)"
+            ))
+            db.session.execute(db.text(
+                "ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"
+            ))
+            db.session.commit()
+            print("✅  Schema migration complete (google_id column ready)")
+        except Exception as e:
+            db.session.rollback()
+            print(f"ℹ️   Migration skipped (may already be applied): {e}")
+
     return app
 
 

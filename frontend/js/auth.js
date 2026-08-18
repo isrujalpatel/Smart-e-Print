@@ -62,6 +62,10 @@ async function loginUser(email, password) {
   return apiCall('/auth/login', 'POST', { email, password });
 }
 
+async function googleAuthUser(credential, role = 'customer') {
+  return apiCall('/auth/google', 'POST', { credential, role });
+}
+
 async function fetchCurrentUser() {
   return apiCall('/auth/me', 'GET');
 }

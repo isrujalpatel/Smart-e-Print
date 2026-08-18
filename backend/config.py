@@ -32,3 +32,6 @@ class Config:
     # ── JWT ─────────────────────────────────────────────────────────────────────
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-secret-key-change-in-production")
     JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+
+    # ── Google OAuth ─────────────────────────────────────────────────────────────
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")

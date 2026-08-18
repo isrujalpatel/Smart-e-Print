@@ -9,6 +9,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -105,9 +107,20 @@
 
       </form>
 
-      <div class="auth-divider">or</div>
+      <!-- ── Google Sign-Up ──────────────────────────────────────────────── -->
+      <div class="auth-divider">or continue with</div>
 
-      <p class="auth-link-text">
+      <button type="button" class="btn-google" id="googleRegisterBtn">
+        <svg class="google-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Sign up with Google
+      </button>
+
+      <p class="auth-link-text" style="margin-top:20px;">
         Already have an account? <a href="login.html" id="goLoginLink">Sign in</a>
       </p>
 
@@ -171,6 +184,62 @@
         showFormError('formAlert', '✕  ' + (data.error || 'Registration failed. Please try again.'));
       }
     });
+
+    // ── Google Sign-Up ───────────────────────────────────────────────────────
+    const GOOGLE_CLIENT_ID = '424686117630-cblseu5hg9mhhfg03mv1eeg4g51rqa2u.apps.googleusercontent.com';
+
+    // Called by GIS with the credential (ID token)
+    async function handleGoogleCredential(response) {
+      const btn  = document.getElementById('googleRegisterBtn');
+      const role = document.getElementById('selectedRole').value || 'customer';
+      hideFormAlert('formAlert');
+      setLoading(btn, true);
+
+      const { ok, data } = await googleAuthUser(response.credential, role);
+      setLoading(btn, false);
+
+      if (ok) {
+        setToken(data.token);
+        setStoredUser(data.user);
+        showToast('Account created! Welcome, ' + data.user.name + '! 🎉');
+        setTimeout(() => redirectByRole(data.user.role), 800);
+      } else {
+        showFormError('formAlert', '✕  ' + (data.error || 'Google sign-up failed. Please try again.'));
+      }
+    }
+
+    // Initialize GIS
+    function initGoogleSignIn() {
+      if (typeof google === 'undefined') return;
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+    }
+
+    // Trigger on button click
+    document.getElementById('googleRegisterBtn').addEventListener('click', function () {
+      if (typeof google === 'undefined') {
+        showFormError('formAlert', '⚠  Google Sign-In not loaded yet. Please try again.');
+        return;
+      }
+      initGoogleSignIn();
+      google.accounts.id.prompt(function (notification) {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          const popup = window.open(
+            `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}` +
+            `&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/google/callback')}` +
+            `&response_type=token&scope=openid%20email%20profile`,
+            'googleSignIn', 'width=500,height=600'
+          );
+        }
+      });
+    });
+
+    window.addEventListener('load', initGoogleSignIn);
   </script>
 </body>
 </html>

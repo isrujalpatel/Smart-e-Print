@@ -5,6 +5,8 @@ from middleware.auth_required import token_required
 from config import Config
 import jwt
 import datetime
+import urllib.request
+import json as json_lib
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -94,6 +96,68 @@ def logout(current_user):
     JWT is stateless — actual token removal happens on the client side.
     """
     return jsonify({"message": "Logged out successfully."}), 200
+
+
+# ── POST /api/auth/google ────────────────────────────────────────────────────
+@auth_bp.route("/google", methods=["POST"])
+def google_auth():
+    """Verify a Google ID token and return a Smart e-Print JWT."""
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Request body must be JSON."}), 400
+
+    credential = data.get("credential", "").strip()
+    role = data.get("role", "customer").strip().lower()
+
+    if not credential:
+        return jsonify({"error": "Google credential is required."}), 400
+    if role not in ALLOWED_ROLES:
+        role = "customer"
+
+    # ── Verify token with Google's tokeninfo endpoint ─────────────────────────
+    try:
+        url = f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}"
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            gdata = json_lib.loads(resp.read().decode())
+    except Exception:
+        return jsonify({"error": "Failed to verify Google token. Please try again."}), 401
+
+    # Validate audience (must match our Client ID)
+    if gdata.get("aud") != Config.GOOGLE_CLIENT_ID:
+        return jsonify({"error": "Invalid token audience."}), 401
+
+    google_id = gdata.get("sub", "")
+    email     = gdata.get("email", "").lower()
+    name      = gdata.get("name") or email.split("@")[0]
+
+    if not email or not google_id:
+        return jsonify({"error": "Could not retrieve profile from Google."}), 401
+
+    # ── Find or create user ───────────────────────────────────────────────────
+    user = User.query.filter_by(email=email).first()
+    if user:
+        # Link google_id if this account was created with email/password
+        if not user.google_id:
+            user.google_id = google_id
+            db.session.commit()
+    else:
+        # Brand-new Google user — create account with selected role
+        user = User(
+            name=name,
+            email=email,
+            password_hash=None,   # no password for Google-only accounts
+            role=role,
+            google_id=google_id,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    token = _generate_token(user)
+    return jsonify({
+        "message": "Google sign-in successful!",
+        "token":   token,
+        "user":    user.to_dict(),
+    }), 200
 
 
 # ── Helper ───────────────────────────────────────────────────────────────────

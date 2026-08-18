@@ -8,14 +8,15 @@ class User(db.Model):
 
     __tablename__ = "users"
 
-    id           = db.Column(db.String(36), primary_key=True,
-                             default=lambda: str(uuid.uuid4()))
-    name         = db.Column(db.String(100), nullable=False)
-    email        = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
-    role         = db.Column(db.String(20), nullable=False)   # 'customer' | 'owner'
-    created_at   = db.Column(db.DateTime,
-                             default=lambda: datetime.now(timezone.utc))
+    id            = db.Column(db.String(36), primary_key=True,
+                              default=lambda: str(uuid.uuid4()))
+    name          = db.Column(db.String(100), nullable=False)
+    email         = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=True)   # nullable for Google-only users
+    role          = db.Column(db.String(20), nullable=False)   # 'customer' | 'owner'
+    google_id     = db.Column(db.String(255), nullable=True, index=True)
+    created_at    = db.Column(db.DateTime,
+                              default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):
         return f"<User {self.email!r} role={self.role!r}>"
@@ -27,5 +28,7 @@ class User(db.Model):
             "name":       self.name,
             "email":      self.email,
             "role":       self.role,
+            "google_id":  self.google_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
