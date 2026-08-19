@@ -8,8 +8,9 @@ from werkzeug.utils import secure_filename
 from PyPDF2 import PdfReader
 
 from extensions import db
-from middleware.auth_required import token_required
+from middleware.auth_required import token_required, role_required
 from models.print_order import PrintOrder
+from models.audit_log import AuditLog
 
 orders_bp = Blueprint("orders", __name__)
 
@@ -23,10 +24,11 @@ ALLOWED_MIME = {
 FILE_SIZE_LIMIT = 10 * 1024 * 1024
 PRICE_RATES = {"bw": 2.0, "color": 5.0}
 PAPER_MULTIPLIERS = {"A4": 1.0, "A3": 1.25, "Letter": 1.1}
+VALID_STATUSES = {"Submitted", "Accepted", "Rejected", "Printing", "Completed"}
 
 
 def _detect_image_type(file_header: bytes) -> str:
-    """Detect image type from file header signature (Python 3.13 compatible replacement for imghdr)"""
+    """Detect image type from file header signature (Python 3.13 compatible)."""
     if file_header.startswith(b'\x89PNG'):
         return 'png'
     elif file_header.startswith(b'\xff\xd8\xff'):
@@ -122,6 +124,7 @@ def _calculate_price(print_mode: str, printed_pages: int, copies: int, paper_siz
     return rate, multiplier, round(total, 2)
 
 
+# ── POST /api/orders ─────────────────────────────────────────────────────────
 @orders_bp.route('', methods=['POST'])
 @token_required
 def create_order(current_user):
@@ -186,6 +189,8 @@ def create_order(current_user):
 
     order = PrintOrder(
         user_id=current_user.id,
+        customer_name=current_user.name,
+        customer_email=current_user.email,
         file_name=filename,
         file_path=saved_path,
         file_type=extension,
@@ -200,10 +205,122 @@ def create_order(current_user):
         unit_rate=rate,
         multiplier=multiplier,
         total_price=total_price,
+        status="Submitted",
         created_at=datetime.now(timezone.utc),
     )
 
     db.session.add(order)
     db.session.commit()
 
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    AuditLog.log(
+        action="ORDER_CREATED",
+        user=current_user,
+        details=f"Created order {order.id[:8]} for '{filename}' (₹{total_price})",
+        ip_address=ip_addr,
+    )
+
     return jsonify({"message": "Order submitted successfully.", "order": order.to_dict()}), 201
+
+
+# ── GET /api/orders ──────────────────────────────────────────────────────────
+@orders_bp.route('', methods=['GET'])
+@token_required
+def list_orders(current_user):
+    """
+    List orders.
+    - Customer: gets only their own orders.
+    - Admin / Super Admin: gets all orders in the system.
+    """
+    status_filter = request.args.get('status', '').strip()
+
+    if current_user.role == 'customer':
+        query = PrintOrder.query.filter_by(user_id=current_user.id)
+    else:
+        query = PrintOrder.query
+
+    if status_filter and status_filter in VALID_STATUSES:
+        query = query.filter_by(status=status_filter)
+
+    orders = query.order_by(PrintOrder.created_at.desc()).all()
+    return jsonify({"orders": [o.to_dict() for o in orders]}), 200
+
+
+# ── PATCH /api/orders/<order_id>/status ──────────────────────────────────────
+@orders_bp.route('/<order_id>/status', methods=['PATCH'])
+@role_required('admin', 'super_admin')
+def update_order_status(current_user, order_id):
+    """
+    Update order status (Admin and Super Admin only).
+    Statuses: Submitted, Accepted, Rejected, Printing, Completed
+    """
+    data = request.get_json(silent=True) or {}
+    new_status = data.get('status', '').strip()
+    rejection_reason = data.get('rejection_reason', '').strip() or None
+
+    if new_status not in VALID_STATUSES:
+        return jsonify({
+            "error": f"Invalid status. Must be one of: {', '.join(sorted(VALID_STATUSES))}."
+        }), 400
+
+    order = db.session.get(PrintOrder, order_id)
+    if not order:
+        return jsonify({"error": "Order not found."}), 404
+
+    old_status = order.status
+    order.status = new_status
+    if new_status == 'Rejected':
+        order.rejection_reason = rejection_reason or "Rejected by shop admin"
+    elif new_status in {'Accepted', 'Printing', 'Completed'}:
+        order.rejection_reason = None
+
+    order.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    AuditLog.log(
+        action="ORDER_STATUS_UPDATED",
+        user=current_user,
+        details=f"Updated order {order.id[:8]} status from '{old_status}' to '{new_status}'" + (f" (Reason: {rejection_reason})" if rejection_reason else ""),
+        ip_address=ip_addr,
+    )
+
+    return jsonify({
+        "message": f"Order status updated to {new_status}.",
+        "order": order.to_dict()
+    }), 200
+
+
+# ── GET /api/orders/stats ───────────────────────────────────────────────────
+@orders_bp.route('/stats', methods=['GET'])
+@role_required('admin', 'super_admin')
+def get_order_stats(current_user):
+    """Operational statistics for Admin and Super Admin."""
+    orders = PrintOrder.query.all()
+    total_orders = len(orders)
+    submitted = sum(1 for o in orders if o.status == 'Submitted')
+    accepted = sum(1 for o in orders if o.status == 'Accepted')
+    printing = sum(1 for o in orders if o.status == 'Printing')
+    completed = sum(1 for o in orders if o.status == 'Completed')
+    rejected = sum(1 for o in orders if o.status == 'Rejected')
+
+    total_revenue = sum(o.total_price for o in orders if o.status in {'Accepted', 'Printing', 'Completed'})
+    
+    # Today's orders
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_orders = [o for o in orders if o.created_at and o.created_at >= today_start]
+    today_revenue = sum(o.total_price for o in today_orders if o.status in {'Accepted', 'Printing', 'Completed'})
+
+    return jsonify({
+        "stats": {
+            "total_orders": total_orders,
+            "submitted": submitted,
+            "accepted": accepted,
+            "printing": printing,
+            "completed": completed,
+            "rejected": rejected,
+            "total_revenue": round(total_revenue, 2),
+            "today_revenue": round(today_revenue, 2),
+            "today_orders": len(today_orders),
+        }
+    }), 200

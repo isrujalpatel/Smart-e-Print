@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super Admin Dashboard — Smart e-Print</title>
+  <meta name="description" content="Smart e-Print Super Admin Dashboard — system analytics, user management, single admin management, and audit logs." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+  <style>
+    .super-admin-badge {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .nav-tab-custom {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      padding: 8px 18px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .table-dark-custom {
+      width: 100%;
+      color: var(--text-color);
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+    .table-dark-custom th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 14px;
+      border: none;
+    }
+    .table-dark-custom td {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+    .table-dark-custom tr td:first-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px 0 0 12px;
+    }
+    .table-dark-custom tr td:last-child {
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 0 12px 12px 0;
+    }
+    .status-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .status-pill.active { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-pill.disabled { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .role-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .role-tag.customer { background: rgba(6, 182, 212, 0.15); color: #67e8f9; }
+    .role-tag.admin { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .role-tag.super_admin { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Background -->
+  <div class="bg-animated" style="opacity:.6;">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand-custom" style="font-size:1.1rem;">
+        <div class="brand-name-wrap">
+          <span class="brand-name-main gradient-text" style="font-size:1rem;">Smart e-Print</span>
+          <span class="brand-name-sub">Super Admin Control</span>
+        </div>
+      </a>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li>
+        <a href="#" class="active" id="navTabOverview" onclick="switchTab('overview')">
+          <i class="bi bi-speedometer2"></i> System Overview
+        </a>
+      </li>
+      <li>
+        <a href="#" id="navTabUsers" onclick="switchTab('users')">
+          <i class="bi bi-people"></i> User Management
+        </a>
+      </li>
+      <li>
+        <a href="#" id="navTabAdmin" onclick="switchTab('admin')">
+          <i class="bi bi-shield-lock"></i> Admin Management
+        </a>
+      </li>
+      <li>
+        <a href="#" id="navTabAudit" onclick="switchTab('audit')">
+          <i class="bi bi-journal-text"></i> Audit &amp; Activity Logs
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar"
+             style="background:linear-gradient(135deg,#F59E0B,#EF4444);">👑</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarUserName">Super Admin</div>
+          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:#FBBF24;">Super Admin</div>
+        </div>
+      </div>
+      <a href="#" class="btn-outline-glass w-100" id="logoutBtn"
+         style="font-size:.83rem;padding:9px 14px;">
+        <i class="bi bi-box-arrow-left"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ══════════════════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">
+          Super Admin Dashboard 👑
+        </h1>
+        <p class="dash-subtitle">
+          Full System &amp; Role Management · Welcome, <span class="gradient-text" id="welcomeName">Super Admin</span>
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="super-admin-badge">
+          <i class="bi bi-shield-fill-check"></i> Super Admin
+        </span>
+        <button class="btn-outline-glass btn-sm" id="btnRefreshAll" title="Refresh data">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Header (Mobile/Desktop friendly) -->
+    <div class="nav-tab-custom">
+      <button class="tab-btn active" id="tabBtnOverview" onclick="switchTab('overview')">
+        <i class="bi bi-speedometer2 me-1"></i> Overview
+      </button>
+      <button class="tab-btn" id="tabBtnUsers" onclick="switchTab('users')">
+        <i class="bi bi-people me-1"></i> User Management
+      </button>
+      <button class="tab-btn" id="tabBtnAdmin" onclick="switchTab('admin')">
+        <i class="bi bi-shield-lock me-1"></i> Admin Management (Single Admin)
+      </button>
+      <button class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">
+        <i class="bi bi-journal-text me-1"></i> Audit Logs
+      </button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB 1: SYSTEM OVERVIEW
+         ════════════════════════════════════════════════════════════════════ -->
+    <div id="tabContentOverview" class="tab-pane-custom">
+      <!-- KPI Stats -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="stat-card">
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value gradient-text" id="kpiTotalUsers">0</div>
+            <div class="stat-change neutral" id="kpiActiveCust">0 active customers</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-card">
+            <div class="stat-label">Active Admin Status</div>
+            <div class="stat-value" id="kpiAdminStatus" style="font-size:1.4rem;">Checking…</div>
+            <div class="stat-change neutral" id="kpiAdminSub">Single Shop Admin</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-card">
+            <div class="stat-label">Total Logins Recorded</div>
+            <div class="stat-value" id="kpiTotalLogins" style="color:#60a5fa;">0</div>
+            <div class="stat-change neutral" id="kpiLoggedInUsers">0 users logged in</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value" id="kpiRevenue" style="color:var(--accent);">₹0</div>
+            <div class="stat-change neutral" id="kpiOrders">0 orders placed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action & Rules Banner -->
+      <div class="glass-card p-4 mb-4">
+        <div class="row align-items-center">
+          <div class="col-lg-8">
+            <h3 class="section-title mb-2">Strict 3-Role System Enforcement</h3>
+            <p class="text-muted small mb-0">
+              System Invariants: <strong>Unlimited Customers</strong>, <strong>Exactly 1 Admin</strong>, and <strong>Exactly 1 Super Admin</strong>.
+              Admins operate the print queue. Super Admin controls user accounts and the single Admin account lifecycle. Historical print orders are preserved even if accounts are modified or deleted.
+            </p>
+          </div>
+          <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <button class="btn-gradient btn-sm me-2" onclick="openAddCustomerModal()">
+              <i class="bi bi-person-plus"></i> Add Customer
+            </button>
+            <button class="btn-outline-glass btn-sm" onclick="switchTab('admin')">
+              <i class="bi bi-shield-lock"></i> Manage Admin
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB 2: USER MANAGEMENT
+         ════════════════════════════════════════════════════════════════════ -->
+    <div id="tabContentUsers" class="tab-pane-custom" style="display:none;">
+      <div class="glass-card p-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+          <div>
+            <h2 class="section-title mb-1">User Directory</h2>
+            <p class="section-desc mb-0">Search, filter, view login records, enable/disable or remove Customer accounts</p>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn-gradient btn-sm" onclick="openAddCustomerModal()">
+              <i class="bi bi-person-plus"></i> Add Customer Account
+            </button>
+          </div>
+        </div>
+
+        <!-- Search and filters -->
+        <div class="row g-2 mb-3">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" id="userSearchInput" class="minimal-input form-control" placeholder="Search by name, email, or user ID…" />
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select id="userRoleFilter" class="minimal-select w-100">
+              <option value="">All Roles</option>
+              <option value="customer">Customer</option>
+              <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select id="userStatusFilter" class="minimal-select w-100">
+              <option value="">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="disabled">Disabled Only</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <button class="btn-outline-glass w-100 h-100" id="btnFilterUsers" title="Filter"><i class="bi bi-funnel"></i></button>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="table-responsive">
+          <table class="table-dark-custom">
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th>Name / Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Last Login</th>
+                <th>Logins</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-arrow-repeat spin"></i> Loading users…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB 3: ADMIN MANAGEMENT (SINGLE ADMIN)
+         ════════════════════════════════════════════════════════════════════ -->
+    <div id="tabContentAdmin" class="tab-pane-custom" style="display:none;">
+      <div class="row g-4">
+        <!-- Admin Account Overview Card -->
+        <div class="col-lg-7">
+          <div class="glass-card p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <h2 class="section-title mb-1">Single Shop Admin Account</h2>
+                <p class="section-desc mb-0">There must NEVER be more than one Admin account.</p>
+              </div>
+              <span class="badge bg-warning text-dark px-3 py-2 fw-bold">Max Limit: 1 Admin</span>
+            </div>
+
+            <div id="adminCardContent" class="py-2">
+              <div class="text-center py-4 text-muted">
+                <i class="bi bi-arrow-repeat spin"></i> Loading Admin account details…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Management Controls Card -->
+        <div class="col-lg-5">
+          <div class="glass-card p-4 h-100">
+            <h3 class="section-title mb-2">Admin Account Actions</h3>
+            <p class="text-muted small mb-4">
+              If the Admin forgets credentials or the account needs to be replaced, update it below securely without affecting print history.
+            </p>
+
+            <div class="d-grid gap-3">
+              <button class="btn btn-primary" onclick="openResetAdminPasswordModal()">
+                <i class="bi bi-key me-1"></i> Reset Admin Password
+              </button>
+              <button class="btn btn-warning text-dark" id="btnToggleAdminStatus" onclick="toggleAdminAccountStatus()">
+                <i class="bi bi-pause-circle me-1"></i> Toggle Enable / Disable
+              </button>
+              <button class="btn btn-outline-info" onclick="openReplaceAdminModal()">
+                <i class="bi bi-person-gear me-1"></i> Replace Admin Account Details
+              </button>
+              <button class="btn btn-outline-danger" onclick="deleteAdminAccountAction()">
+                <i class="bi bi-trash me-1"></i> Delete Admin (Vacate Slot)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB 4: AUDIT LOGS
+         ════════════════════════════════════════════════════════════════════ -->
+    <div id="tabContentAudit" class="tab-pane-custom" style="display:none;">
+      <div class="glass-card p-4">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h2 class="section-title mb-1">System Audit &amp; Activity Log</h2>
+            <p class="section-desc mb-0">Chronological record of user logins, admin adjustments, and order state transitions</p>
+          </div>
+          <button class="btn-outline-glass btn-sm" onclick="loadAuditLogs()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Logs
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-dark-custom">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action Event</th>
+                <th>Actor / Email</th>
+                <th>Role</th>
+                <th>Details</th>
+                <th>IP Address</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-arrow-repeat spin"></i> Loading audit logs…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /.main-content -->
+
+  <!-- ── Add Customer Modal ──────────────────────────────────────────────── -->
+  <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-person-plus me-1"></i> Add Customer Account</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="addCustomerForm" onsubmit="handleAddCustomerSubmit(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label text-muted small">Full Name</label>
+              <input type="text" id="newCustName" class="minimal-input w-100" required placeholder="e.g. John Doe" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small">Email Address</label>
+              <input type="email" id="newCustEmail" class="minimal-input w-100" required placeholder="customer@example.com" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small">Initial Password (min. 6 chars)</label>
+              <input type="password" id="newCustPassword" class="minimal-input w-100" required placeholder="••••••••" minlength="6" />
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn-gradient" id="btnAddCustomerBtn">Create Customer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Reset Admin Password Modal ─────────────────────────────────────── -->
+  <div class="modal fade" id="resetAdminPwModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-key me-1"></i> Reset Admin Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="resetAdminPwForm" onsubmit="handleResetAdminPwSubmit(event)">
+          <div class="modal-body">
+            <p class="text-muted small">Set a new secure password for the single Admin account.</p>
+            <div class="mb-3">
+              <label class="form-label text-muted small">New Admin Password (min. 6 chars)</label>
+              <input type="password" id="resetAdminPwInput" class="minimal-input w-100" required placeholder="••••••••" minlength="6" />
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnResetAdminPwSubmit">Reset Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Replace / Configure Admin Modal ─────────────────────────────────── -->
+  <div class="modal fade" id="replaceAdminModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-person-gear me-1"></i> Replace / Configure Admin</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="replaceAdminForm" onsubmit="handleReplaceAdminSubmit(event)">
+          <div class="modal-body">
+            <p class="text-muted small">
+              This replaces the credentials for the single Admin account without affecting any print records.
+            </p>
+            <div class="mb-3">
+              <label class="form-label text-muted small">Admin Name</label>
+              <input type="text" id="replaceAdminName" class="minimal-input w-100" required placeholder="e.g. Shop Manager" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small">Admin Email</label>
+              <input type="email" id="replaceAdminEmail" class="minimal-input w-100" required placeholder="admin@example.com" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-muted small">New Admin Password</label>
+              <input type="password" id="replaceAdminPw" class="minimal-input w-100" required placeholder="••••••••" minlength="6" />
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn-gradient" id="btnReplaceAdminSubmit">Save Admin Account</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let cachedUsers = [];
+    let cachedAdmin = null;
+    let addCustModalInstance = null;
+    let resetPwModalInstance = null;
+    let replaceAdminModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Role Guard: strictly 'super_admin'
+      const user = await requireAuth('super_admin');
+      if (!user) return;
+
+      document.getElementById('sidebarUserName').textContent = user.name;
+      document.getElementById('welcomeName').textContent = user.name.split(' ')[0];
+
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+      });
+
+      addCustModalInstance = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+      resetPwModalInstance = new bootstrap.Modal(document.getElementById('resetAdminPwModal'));
+      replaceAdminModalInstance = new bootstrap.Modal(document.getElementById('replaceAdminModal'));
+
+      document.getElementById('btnRefreshAll').addEventListener('click', refreshAll);
+      document.getElementById('btnFilterUsers').addEventListener('click', loadUsers);
+      document.getElementById('userSearchInput').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') loadUsers();
+      });
+      document.getElementById('userRoleFilter').addEventListener('change', loadUsers);
+      document.getElementById('userStatusFilter').addEventListener('change', loadUsers);
+
+      refreshAll();
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+      document.querySelectorAll('.tab-pane-custom').forEach(p => p.style.display = 'none');
+
+      const targetPane = document.getElementById(`tabContent${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+      const targetBtn = document.getElementById(`tabBtn${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+      const targetNav = document.getElementById(`navTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+
+      if (targetPane) targetPane.style.display = 'block';
+      if (targetBtn) targetBtn.classList.add('active');
+      if (targetNav) targetNav.classList.add('active');
+
+      if (tabId === 'users') loadUsers();
+      if (tabId === 'admin') loadAdminAccount();
+      if (tabId === 'audit') loadAuditLogs();
+      if (tabId === 'overview') loadSystemStats();
+    }
+
+    async function refreshAll() {
+      await Promise.all([
+        loadSystemStats(),
+        loadUsers(),
+        loadAdminAccount(),
+        loadAuditLogs(),
+      ]);
+    }
+
+    async function loadSystemStats() {
+      const { ok, data } = await apiCall('/super-admin/stats', 'GET');
+      if (ok && data.stats) {
+        const s = data.stats;
+        document.getElementById('kpiTotalUsers').textContent = s.total_users;
+        document.getElementById('kpiActiveCust').textContent = `${s.active_customers} active customers`;
+        
+        const adminStatusEl = document.getElementById('kpiAdminStatus');
+        if (s.admin_count > 0) {
+          adminStatusEl.innerHTML = s.admin_active ? '<span class="text-success">● Active</span>' : '<span class="text-danger">● Disabled</span>';
+        } else {
+          adminStatusEl.innerHTML = '<span class="text-muted">None Set</span>';
+        }
+
+        document.getElementById('kpiTotalLogins').textContent = s.total_logins;
+        document.getElementById('kpiLoggedInUsers').textContent = `${s.users_logged_in_count} users logged in`;
+        document.getElementById('kpiRevenue').textContent = `₹${s.total_revenue.toFixed(2)}`;
+        document.getElementById('kpiOrders').textContent = `${s.total_orders} total orders`;
+      }
+    }
+
+    async function loadUsers() {
+      const search = document.getElementById('userSearchInput').value.trim();
+      const role = document.getElementById('userRoleFilter').value;
+      const status = document.getElementById('userStatusFilter').value;
+
+      let query = [];
+      if (search) query.push(`search=${encodeURIComponent(search)}`);
+      if (role) query.push(`role=${encodeURIComponent(role)}`);
+      if (status) query.push(`status=${encodeURIComponent(status)}`);
+      const url = `/super-admin/users${query.length ? '?' + query.join('&') : ''}`;
+
+      const tbody = document.getElementById('usersTableBody');
+      const { ok, data } = await apiCall(url, 'GET');
+      if (!ok) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load users.</td></tr>`;
+        return;
+      }
+
+      cachedUsers = data.users || [];
+      renderUsersTable(cachedUsers);
+    }
+
+    function renderUsersTable(users) {
+      const tbody = document.getElementById('usersTableBody');
+      if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No users found matching criteria.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = users.map(u => {
+        const shortId = u.id.substring(0, 8);
+        const registered = u.created_at ? new Date(u.created_at).toLocaleDateString() : '—';
+        const lastLogin = u.last_login ? new Date(u.last_login).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Never';
+        const statusBadge = u.is_active
+          ? `<span class="status-pill active">Active</span>`
+          : `<span class="status-pill disabled">Disabled</span>`;
+
+        let actionHtml = '';
+        if (u.role === 'customer') {
+          actionHtml = `
+            <button class="btn btn-sm ${u.is_active ? 'btn-outline-warning' : 'btn-outline-success'} btn-action-sm me-1" onclick="toggleUserStatus('${u.id}', ${!u.is_active})">
+              ${u.is_active ? '<i class="bi bi-pause"></i> Disable' : '<i class="bi bi-play"></i> Enable'}
+            </button>
+            <button class="btn btn-sm btn-outline-danger btn-action-sm" onclick="deleteCustomerAccount('${u.id}', '${escapeHtml(u.email)}')">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+          `;
+        } else if (u.role === 'admin') {
+          actionHtml = `
+            <button class="btn btn-sm btn-outline-info btn-action-sm" onclick="switchTab('admin')">
+              <i class="bi bi-gear"></i> Manage Admin
+            </button>
+          `;
+        } else {
+          actionHtml = `<span class="text-muted small">Protected</span>`;
+        }
+
+        return `
+          <tr>
+            <td><span class="font-monospace text-info small" title="${u.id}">#${shortId}</span></td>
+            <td>
+              <div class="fw-bold">${escapeHtml(u.name)}</div>
+              <small class="text-muted">${escapeHtml(u.email)}</small>
+            </td>
+            <td><span class="role-tag ${u.role}">${u.role.replace('_', ' ')}</span></td>
+            <td>${statusBadge}</td>
+            <td><small class="text-muted">${registered}</small></td>
+            <td><small class="text-muted">${lastLogin}</small></td>
+            <td><span class="badge bg-dark border">${u.login_count || 0}</span></td>
+            <td class="text-end">${actionHtml}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleUserStatus(userId, newActiveState) {
+      const { ok, data } = await apiCall(`/super-admin/users/${userId}/status`, 'PATCH', { is_active: newActiveState });
+      if (ok) {
+        showToast(data.message);
+        loadUsers();
+        loadSystemStats();
+      } else {
+        showToast(data.error || 'Failed to change user status.', 'error');
+      }
+    }
+
+    async function deleteCustomerAccount(userId, email) {
+      if (!confirm(`Are you sure you want to delete customer ${email}?\n\nNote: All historical print orders for this customer will remain safely preserved in the database.`)) {
+        return;
+      }
+
+      const { ok, data } = await apiCall(`/super-admin/users/${userId}`, 'DELETE');
+      if (ok) {
+        showToast(data.message);
+        loadUsers();
+        loadSystemStats();
+      } else {
+        showToast(data.error || 'Failed to delete customer.', 'error');
+      }
+    }
+
+    function openAddCustomerModal() {
+      document.getElementById('newCustName').value = '';
+      document.getElementById('newCustEmail').value = '';
+      document.getElementById('newCustPassword').value = '';
+      addCustModalInstance.show();
+    }
+
+    async function handleAddCustomerSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('newCustName').value.trim();
+      const email = document.getElementById('newCustEmail').value.trim();
+      const password = document.getElementById('newCustPassword').value;
+
+      const { ok, data } = await apiCall('/super-admin/users', 'POST', { name, email, password });
+      if (ok) {
+        addCustModalInstance.hide();
+        showToast('Customer account created successfully!');
+        loadUsers();
+        loadSystemStats();
+      } else {
+        showToast(data.error || 'Failed to create customer.', 'error');
+      }
+    }
+
+    // ── ADMIN MANAGEMENT ────────────────────────────────────────────────────
+    async function loadAdminAccount() {
+      const container = document.getElementById('adminCardContent');
+      const { ok, data } = await apiCall('/super-admin/admin-account', 'GET');
+      if (!ok) {
+        container.innerHTML = `<div class="text-danger py-3">Failed to load admin account.</div>`;
+        return;
+      }
+
+      cachedAdmin = data.admin;
+      if (!cachedAdmin) {
+        container.innerHTML = `
+          <div class="text-center py-4">
+            <div class="text-warning mb-2" style="font-size:2rem;"><i class="bi bi-exclamation-triangle"></i></div>
+            <h5>No Admin Account Exists</h5>
+            <p class="text-muted small">You can create the single Admin account to manage operational printing.</p>
+            <button class="btn-gradient btn-sm" onclick="openReplaceAdminModal()">
+              <i class="bi bi-plus-circle"></i> Create Admin Account
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const registered = cachedAdmin.created_at ? new Date(cachedAdmin.created_at).toLocaleString() : '—';
+      const lastLogin = cachedAdmin.last_login ? new Date(cachedAdmin.last_login).toLocaleString() : 'Never';
+      const statusBadge = cachedAdmin.is_active
+        ? '<span class="status-pill active">● Active</span>'
+        : '<span class="status-pill disabled">● Deactivated</span>';
+
+      container.innerHTML = `
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="text-muted small">Admin User ID</label>
+            <div class="font-monospace text-info small">${cachedAdmin.id}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small">Account Status</label>
+            <div>${statusBadge}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small">Admin Name</label>
+            <div class="fw-bold">${escapeHtml(cachedAdmin.name)}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small">Admin Email</label>
+            <div class="fw-bold text-light">${escapeHtml(cachedAdmin.email)}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small">Created At</label>
+            <div class="small text-muted">${registered}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small">Last Login</label>
+            <div class="small text-muted">${lastLogin}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openResetAdminPasswordModal() {
+      if (!cachedAdmin) {
+        showToast('No admin account currently exists.', 'warning');
+        return;
+      }
+      document.getElementById('resetAdminPwInput').value = '';
+      resetPwModalInstance.show();
+    }
+
+    async function handleResetAdminPwSubmit(e) {
+      e.preventDefault();
+      const password = document.getElementById('resetAdminPwInput').value;
+
+      const { ok, data } = await apiCall('/super-admin/admin-account/reset-password', 'POST', { password });
+      if (ok) {
+        resetPwModalInstance.hide();
+        showToast(data.message || 'Admin password reset successfully!');
+        loadAuditLogs();
+      } else {
+        showToast(data.error || 'Failed to reset password.', 'error');
+      }
+    }
+
+    async function toggleAdminAccountStatus() {
+      if (!cachedAdmin) {
+        showToast('No admin account currently exists.', 'warning');
+        return;
+      }
+      const newStatus = !cachedAdmin.is_active;
+      const { ok, data } = await apiCall('/super-admin/admin-account/status', 'PATCH', { is_active: newStatus });
+      if (ok) {
+        showToast(data.message);
+        loadAdminAccount();
+        loadSystemStats();
+        loadAuditLogs();
+      } else {
+        showToast(data.error || 'Failed to toggle admin status.', 'error');
+      }
+    }
+
+    function openReplaceAdminModal() {
+      if (cachedAdmin) {
+        document.getElementById('replaceAdminName').value = cachedAdmin.name;
+        document.getElementById('replaceAdminEmail').value = cachedAdmin.email;
+      } else {
+        document.getElementById('replaceAdminName').value = '';
+        document.getElementById('replaceAdminEmail').value = '';
+      }
+      document.getElementById('replaceAdminPw').value = '';
+      replaceAdminModalInstance.show();
+    }
+
+    async function handleReplaceAdminSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('replaceAdminName').value.trim();
+      const email = document.getElementById('replaceAdminEmail').value.trim();
+      const password = document.getElementById('replaceAdminPw').value;
+
+      const { ok, data } = await apiCall('/super-admin/admin-account/replace', 'POST', { name, email, password });
+      if (ok) {
+        replaceAdminModalInstance.hide();
+        showToast(data.message || 'Admin account successfully configured!');
+        loadAdminAccount();
+        loadSystemStats();
+        loadAuditLogs();
+      } else {
+        showToast(data.error || 'Failed to configure admin account.', 'error');
+      }
+    }
+
+    async function deleteAdminAccountAction() {
+      if (!cachedAdmin) {
+        showToast('No admin account exists.', 'warning');
+        return;
+      }
+      if (!confirm(`Are you sure you want to delete the Admin account (${cachedAdmin.email})?\n\nThis vacates the single admin slot so you can create a fresh one. Existing print records will NOT be lost.`)) {
+        return;
+      }
+
+      const { ok, data } = await apiCall('/super-admin/admin-account', 'DELETE');
+      if (ok) {
+        showToast(data.message);
+        loadAdminAccount();
+        loadSystemStats();
+        loadAuditLogs();
+      } else {
+        showToast(data.error || 'Failed to delete admin account.', 'error');
+      }
+    }
+
+    // ── AUDIT LOGS ──────────────────────────────────────────────────────────
+    async function loadAuditLogs() {
+      const tbody = document.getElementById('auditTableBody');
+      const { ok, data } = await apiCall('/super-admin/audit-logs?limit=100', 'GET');
+      if (!ok) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Failed to load audit logs.</td></tr>`;
+        return;
+      }
+
+      const logs = data.logs || [];
+      if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No audit logs recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = logs.map(l => {
+        const time = l.created_at ? new Date(l.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' }) : '—';
+        return `
+          <tr>
+            <td><small class="font-monospace text-muted">${time}</small></td>
+            <td><strong class="text-warning small">${escapeHtml(l.action)}</strong></td>
+            <td>${escapeHtml(l.user_email || '—')}</td>
+            <td><span class="role-tag ${l.actor_role || ''}">${l.actor_role || 'system'}</span></td>
+            <td><small class="text-muted text-break">${escapeHtml(l.details || '—')}</small></td>
+            <td><small class="font-monospace text-muted">${escapeHtml(l.ip_address || '—')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

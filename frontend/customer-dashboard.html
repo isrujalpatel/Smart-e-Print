@@ -3,12 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Dashboard — Smart e-Print</title>
-  <meta name="description" content="Smart e-Print customer dashboard — manage your print orders." />
+  <title>Customer Dashboard — Smart e-Print</title>
+  <meta name="description" content="Smart e-Print customer dashboard — manage your print orders and track real-time status." />
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
+  <style>
+    .order-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .status-Submitted { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .status-Accepted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-Printing { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .status-Completed { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-Rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .table-dark-custom {
+      width: 100%;
+      color: var(--text-color);
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+    .table-dark-custom th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 14px;
+      border: none;
+    }
+    .table-dark-custom td {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+    .table-dark-custom tr td:first-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px 0 0 12px;
+    }
+    .table-dark-custom tr td:last-child {
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 0 12px 12px 0;
+    }
+  </style>
 </head>
 <body>
 
@@ -30,44 +77,20 @@
       <a href="index.html" class="navbar-brand-custom" style="font-size:1.1rem;">
         <div class="brand-name-wrap">
           <span class="brand-name-main gradient-text" style="font-size:1rem;">Smart e-Print</span>
-          <span class="brand-name-sub">Umiya Graphics &amp; Printing</span>
+          <span class="brand-name-sub">Customer Portal</span>
         </div>
       </a>
     </div>
 
     <ul class="sidebar-nav">
       <li>
-        <a href="#" class="active" id="navDashboard">
-          <i class="bi bi-grid-1x2"></i> Dashboard
+        <a href="customer-dashboard.html" class="active" id="navDashboard">
+          <i class="bi bi-grid-1x2"></i> Dashboard &amp; Orders
         </a>
       </li>
-
-      <li><div class="nav-label">Print Orders</div></li>
       <li>
         <a href="upload-print.html" id="navUploadPrint">
           <i class="bi bi-file-earmark-arrow-up"></i> Upload &amp; Print
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-disabled" title="Coming soon">
-          <i class="bi bi-clock-history"></i> Order History
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-disabled" title="Coming soon">
-          <i class="bi bi-eye"></i> Track Order
-        </a>
-      </li>
-
-      <li><div class="nav-label">Account</div></li>
-      <li>
-        <a href="#" class="nav-disabled" title="Coming soon">
-          <i class="bi bi-credit-card"></i> Payments
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-disabled" title="Coming soon">
-          <i class="bi bi-person-circle"></i> Profile
         </a>
       </li>
     </ul>
@@ -96,9 +119,9 @@
     <div class="dash-header">
       <div>
         <h1 class="dash-title">
-          Hello, <span class="gradient-text" id="welcomeName">there</span>! 👋
+          Hello, <span class="gradient-text" id="welcomeName">Customer</span>! 👋
         </h1>
-        <p class="dash-subtitle">Here's your print activity overview</p>
+        <p class="dash-subtitle">Here's your print activity overview &amp; order tracking</p>
       </div>
       <span class="role-badge customer" style="margin-top:6px;">
         <i class="bi bi-person"></i> Customer
@@ -110,38 +133,38 @@
       <div class="col-6 col-lg-3">
         <div class="stat-card">
           <div class="stat-label">Total Orders</div>
-          <div class="stat-value gradient-text">0</div>
-          <div class="stat-change neutral">No orders yet</div>
+          <div class="stat-value gradient-text" id="custStatTotal">0</div>
+          <div class="stat-change neutral">Submitted by you</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
           <div class="stat-label">Completed</div>
-          <div class="stat-value" style="color:var(--accent);">0</div>
-          <div class="stat-change neutral">—</div>
+          <div class="stat-value" id="custStatCompleted" style="color:var(--accent);">0</div>
+          <div class="stat-change neutral">Ready for pickup</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">Pending</div>
-          <div class="stat-value" style="color:var(--warning);">0</div>
-          <div class="stat-change neutral">—</div>
+          <div class="stat-label">In Progress / Pending</div>
+          <div class="stat-value" id="custStatPending" style="color:var(--warning);">0</div>
+          <div class="stat-change neutral">Processing</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">Total Spent</div>
-          <div class="stat-value" style="color:#2563eb;">₹0</div>
-          <div class="stat-change neutral">—</div>
+          <div class="stat-label">Total Amount</div>
+          <div class="stat-value" id="custStatSpent" style="color:#2563eb;">₹0.00</div>
+          <div class="stat-change neutral">Print spending</div>
         </div>
       </div>
     </div>
 
-    <!-- Upload Section -->
+    <!-- Quick Upload Section -->
     <div class="glass-card upload-card p-4 mt-4 mb-4">
       <div class="upload-card-header mb-3">
         <div>
-          <h2 class="section-title">Quick Upload</h2>
+          <h2 class="section-title">Quick Upload &amp; Print</h2>
           <p class="section-desc">Drop your files here to configure and print.</p>
         </div>
       </div>
@@ -154,6 +177,40 @@
         <span class="upload-note">Accepted formats: .pdf, .png, .jpg, .jpeg</span>
       </label>
       <input type="file" id="dashFileInput" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none;" />
+    </div>
+
+    <!-- ── Live Order History & Tracking ───────────────────────────────── -->
+    <div class="glass-card p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h2 class="section-title mb-1">Your Print Orders &amp; Tracking</h2>
+          <p class="section-desc mb-0">Track real-time status of your documents</p>
+        </div>
+        <button class="btn-outline-glass btn-sm" onclick="loadCustomerOrders()">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table-dark-custom">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Document</th>
+              <th>Mode / Specs</th>
+              <th>Pages &amp; Copies</th>
+              <th>Total Cost</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="custOrdersTableBody">
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-arrow-repeat spin"></i> Loading your orders…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </main><!-- /.main-content -->
@@ -321,13 +378,14 @@
       </div>
     </div>
   </div>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>
   <script>
-    // Initialize — verifies JWT, checks role, populates UI
+    // Initialize — verifies JWT, checks role === 'customer', populates UI
     initDashboard('customer');
   </script>
 </body>

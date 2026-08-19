@@ -19,7 +19,7 @@ async function initDashboard(requiredRole) {
   const avatarEl = document.getElementById('sidebarAvatar');
 
   if (nameEl)   nameEl.textContent   = user.name;
-  if (roleEl)   roleEl.textContent   = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+  if (roleEl)   roleEl.textContent   = user.role.charAt(0).toUpperCase() + user.role.slice(1).replace('_', ' ');
   if (avatarEl) avatarEl.textContent = user.name.charAt(0).toUpperCase();
 
   // ── Welcome greeting ──────────────────────────────────────────────────────
@@ -32,7 +32,86 @@ async function initDashboard(requiredRole) {
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); logout(); });
   }
 
+  // If on customer dashboard, load order history and stats
+  if (user.role === 'customer' && document.getElementById('custOrdersTableBody')) {
+    loadCustomerOrders();
+  }
+
   return user;
+}
+
+/**
+ * Load and render customer's own print orders & stats
+ */
+async function loadCustomerOrders() {
+  const tbody = document.getElementById('custOrdersTableBody');
+  if (!tbody) return;
+
+  const { ok, data } = await apiCall('/orders', 'GET');
+  if (!ok) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
+    return;
+  }
+
+  const orders = data.orders || [];
+
+  // Update customer stats
+  const totalOrdersEl = document.getElementById('custStatTotal');
+  const completedEl = document.getElementById('custStatCompleted');
+  const pendingEl = document.getElementById('custStatPending');
+  const spentEl = document.getElementById('custStatSpent');
+
+  const completedCount = orders.filter(o => o.status === 'Completed').length;
+  const pendingCount = orders.filter(o => ['Submitted', 'Accepted', 'Printing'].includes(o.status)).length;
+  const totalSpent = orders.reduce((sum, o) => sum + (o.status !== 'Rejected' ? o.total_price : 0), 0);
+
+  if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
+  if (completedEl) completedEl.textContent = completedCount;
+  if (pendingEl) pendingEl.textContent = pendingCount;
+  if (spentEl) spentEl.textContent = `₹${totalSpent.toFixed(2)}`;
+
+  if (orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No print orders submitted yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map(o => {
+    const shortId = o.id.substring(0, 8);
+    const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const modeBadge = o.print_mode === 'color' ? '<span class="badge bg-warning text-dark">Color</span>' : '<span class="badge bg-secondary">B&W</span>';
+    
+    return `
+      <tr>
+        <td><span class="font-monospace text-info small">#${shortId}</span></td>
+        <td>
+          <div class="fw-bold text-truncate" style="max-width:180px;" title="${escapeHtml(o.file_name)}">
+            <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>${escapeHtml(o.file_name)}
+          </div>
+          <small class="text-muted">${(o.file_size / (1024*1024)).toFixed(2)} MB</small>
+        </td>
+        <td>${modeBadge} <small class="text-muted">· ${o.paper_size || 'A4'}</small></td>
+        <td>
+          <div>${o.copies} ${o.copies > 1 ? 'copies' : 'copy'}</div>
+          <small class="text-muted">${o.printed_pages} pages</small>
+        </td>
+        <td><strong class="text-success">₹${o.total_price.toFixed(2)}</strong></td>
+        <td>
+          <span class="order-status-badge status-${o.status}">● ${o.status}</span>
+          ${o.rejection_reason ? `<div class="small text-danger mt-1 text-truncate" style="max-width:140px;" title="${escapeHtml(o.rejection_reason)}">Reason: ${escapeHtml(o.rejection_reason)}</div>` : ''}
+        </td>
+        <td><small class="text-muted">${dateStr}</small></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // ── DASHBOARD UPLOAD FEATURE ────────────────────────────────────────────────
@@ -368,6 +447,7 @@ async function handleDashSubmitOrder() {
     
     dashConfigModal.hide();
     if(typeof showToast === 'function') showToast('Orders submitted successfully!');
+    if(typeof loadCustomerOrders === 'function') loadCustomerOrders();
   } catch (err) {
     if(typeof showToast === 'function') showToast(err.message || 'Network error. Please try again.');
   } finally {

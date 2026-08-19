@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Smart e-Print</title>
+  <meta name="description" content="Smart e-Print Admin Dashboard — operational printing queue and print job management." />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+  <style>
+    .order-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .status-Submitted { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+    .status-Accepted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-Printing { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .status-Completed { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .status-Rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .filter-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.84rem;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      transition: all 0.2s ease;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .table-dark-custom {
+      width: 100%;
+      color: var(--text-color);
+      border-collapse: separate;
+      border-spacing: 0 8px;
+    }
+    .table-dark-custom th {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 16px;
+      border: none;
+    }
+    .table-dark-custom td {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+    .table-dark-custom tr td:first-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px 0 0 12px;
+    }
+    .table-dark-custom tr td:last-child {
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 0 12px 12px 0;
+    }
+    .table-dark-custom tr:hover td {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .btn-action-sm {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Background -->
+  <div class="bg-animated" style="opacity:.6;">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="navbar-brand-custom" style="font-size:1.1rem;">
+        <div class="brand-name-wrap">
+          <span class="brand-name-main gradient-text" style="font-size:1rem;">Smart e-Print</span>
+          <span class="brand-name-sub">Operational Admin Panel</span>
+        </div>
+      </a>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li>
+        <a href="#" class="active" id="navPrintQueue">
+          <i class="bi bi-printer"></i> Print Queue &amp; Orders
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar"
+             style="background:linear-gradient(135deg,#7C3AED,#A78BFA);">A</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarUserName">Admin</div>
+          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:#C4B5FD;">Shop Admin</div>
+        </div>
+      </div>
+      <a href="#" class="btn-outline-glass w-100" id="logoutBtn"
+         style="font-size:.83rem;padding:9px 14px;">
+        <i class="bi bi-box-arrow-left"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ══════════════════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">
+          Admin Dashboard 🖨️
+        </h1>
+        <p class="dash-subtitle">
+          Operational Print Queue &amp; Job Management · Welcome, <span class="gradient-text" id="welcomeName">Admin</span>
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="role-badge owner" style="margin-top:6px;">
+          <i class="bi bi-shield-lock"></i> Single Shop Admin
+        </span>
+        <button class="btn-outline-glass btn-sm" id="btnRefreshOrders" title="Refresh queue">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Pending Review</div>
+          <div class="stat-value" id="statPending" style="color:var(--warning);">0</div>
+          <div class="stat-change neutral">Requires action</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Printing Now</div>
+          <div class="stat-value" id="statPrinting" style="color:#c084fc;">0</div>
+          <div class="stat-change neutral">In execution</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Completed Jobs</div>
+          <div class="stat-value" id="statCompleted" style="color:var(--accent);">0</div>
+          <div class="stat-change neutral">Ready / picked up</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Total Revenue</div>
+          <div class="stat-value gradient-text" id="statRevenue">₹0</div>
+          <div class="stat-change neutral">From active orders</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Print Queue Management Section ────────────────────────────────── -->
+    <div class="glass-card p-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+          <h2 class="section-title mb-1">Live Print Queue</h2>
+          <p class="section-desc mb-0">Accept, reject, and update status of customer print orders</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2" id="filterContainer">
+          <button class="filter-pill active" data-filter="">All Orders</button>
+          <button class="filter-pill" data-filter="Submitted">Submitted</button>
+          <button class="filter-pill" data-filter="Accepted">Accepted</button>
+          <button class="filter-pill" data-filter="Printing">Printing</button>
+          <button class="filter-pill" data-filter="Completed">Completed</button>
+          <button class="filter-pill" data-filter="Rejected">Rejected</button>
+        </div>
+      </div>
+
+      <!-- Orders Table Container -->
+      <div class="table-responsive">
+        <table class="table-dark-custom">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Document</th>
+              <th>Mode / Specs</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr>
+              <td colspan="8" class="text-center py-4" style="color:var(--muted);">
+                <i class="bi bi-arrow-repeat spin"></i> Loading print queue…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main><!-- /.main-content -->
+
+  <!-- ── Rejection Reason Modal ─────────────────────────────────────────── -->
+  <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title text-danger"><i class="bi bi-x-circle me-1"></i> Reject Print Order</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">Please provide a clear reason for the rejection so the customer is informed.</p>
+          <input type="hidden" id="rejectOrderId" />
+          <div class="mb-3">
+            <label for="rejectReasonInput" class="form-label small text-muted">Rejection Reason</label>
+            <textarea id="rejectReasonInput" class="minimal-input w-100" rows="3" placeholder="e.g. Incompatible format, unreadable scan, out of selected paper stock"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btnConfirmReject">Confirm Rejection</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Order Details Modal ────────────────────────────────────────────── -->
+  <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-file-earmark-text me-1"></i> Print Order Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="orderDetailsBody">
+          <!-- Populated dynamically -->
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let currentFilter = '';
+    let cachedOrders = [];
+    let rejectModalInstance = null;
+    let detailsModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Role Guard: strictly 'admin' (or legacy 'owner')
+      const user = await requireAuth(['admin', 'owner']);
+      if (!user) return;
+
+      document.getElementById('sidebarUserName').textContent = user.name;
+      document.getElementById('welcomeName').textContent = user.name.split(' ')[0];
+      document.getElementById('sidebarAvatar').textContent = user.name.charAt(0).toUpperCase();
+
+      document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+      });
+
+      rejectModalInstance = new bootstrap.Modal(document.getElementById('rejectModal'));
+      detailsModalInstance = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+
+      // Filter pills
+      document.querySelectorAll('.filter-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          loadOrders();
+        });
+      });
+
+      document.getElementById('btnRefreshOrders').addEventListener('click', () => {
+        loadOrders();
+        loadStats();
+      });
+
+      document.getElementById('btnConfirmReject').addEventListener('click', handleConfirmReject);
+
+      loadOrders();
+      loadStats();
+    });
+
+    async function loadStats() {
+      const { ok, data } = await apiCall('/orders/stats', 'GET');
+      if (ok && data.stats) {
+        const s = data.stats;
+        document.getElementById('statPending').textContent = s.submitted;
+        document.getElementById('statPrinting').textContent = s.printing;
+        document.getElementById('statCompleted').textContent = s.completed;
+        document.getElementById('statRevenue').textContent = `₹${s.total_revenue.toFixed(2)}`;
+      }
+    }
+
+    async function loadOrders() {
+      const url = currentFilter ? `/orders?status=${currentFilter}` : '/orders';
+      const tbody = document.getElementById('ordersTableBody');
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4" style="color:var(--muted);"><span class="spinner-border spinner-border-sm me-2"></span> Loading orders…</td></tr>`;
+
+      const { ok, data } = await apiCall(url, 'GET');
+      if (!ok) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
+        return;
+      }
+
+      cachedOrders = data.orders || [];
+      renderOrdersTable(cachedOrders);
+    }
+
+    function renderOrdersTable(orders) {
+      const tbody = document.getElementById('ordersTableBody');
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4" style="color:var(--muted);">No orders found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(o => {
+        const shortId = o.id.substring(0, 8);
+        const createdDate = o.created_at ? new Date(o.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—';
+        const modeBadge = o.print_mode === 'color' ? '<span class="badge bg-warning text-dark">Color</span>' : '<span class="badge bg-secondary">B&W</span>';
+        
+        let actionButtons = '';
+        if (o.status === 'Submitted') {
+          actionButtons = `
+            <button class="btn btn-success btn-action-sm me-1" onclick="updateStatus('${o.id}', 'Accepted')">
+              <i class="bi bi-check-lg"></i> Accept
+            </button>
+            <button class="btn btn-outline-danger btn-action-sm" onclick="openRejectModal('${o.id}')">
+              <i class="bi bi-x-lg"></i> Reject
+            </button>
+          `;
+        } else if (o.status === 'Accepted') {
+          actionButtons = `
+            <button class="btn btn-primary btn-action-sm me-1" onclick="updateStatus('${o.id}', 'Printing')">
+              <i class="bi bi-printer"></i> Print
+            </button>
+            <button class="btn btn-outline-danger btn-action-sm" onclick="openRejectModal('${o.id}')">
+              <i class="bi bi-x-lg"></i> Reject
+            </button>
+          `;
+        } else if (o.status === 'Printing') {
+          actionButtons = `
+            <button class="btn btn-success btn-action-sm" onclick="updateStatus('${o.id}', 'Completed')">
+              <i class="bi bi-check2-all"></i> Complete
+            </button>
+          `;
+        } else {
+          actionButtons = `<button class="btn btn-outline-secondary btn-action-sm" onclick="viewOrderDetails('${o.id}')"><i class="bi bi-eye"></i> Details</button>`;
+        }
+
+        return `
+          <tr>
+            <td>
+              <a href="#" onclick="viewOrderDetails('${o.id}'); return false;" class="text-info font-monospace" style="text-decoration:none;">
+                #${shortId}
+              </a>
+            </td>
+            <td>
+              <div><strong>${escapeHtml(o.customer_name || 'Customer')}</strong></div>
+              <small class="text-muted">${escapeHtml(o.customer_email || '—')}</small>
+            </td>
+            <td>
+              <div class="text-truncate" style="max-width:180px;" title="${escapeHtml(o.file_name)}">
+                <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>${escapeHtml(o.file_name)}
+              </div>
+              <small class="text-muted">${o.page_count} pages · ${o.copies} ${o.copies > 1 ? 'copies' : 'copy'}</small>
+            </td>
+            <td>
+              ${modeBadge} <small class="text-muted">· ${o.paper_size || 'A4'}</small>
+              <div><small class="text-muted">Pages: ${escapeHtml(o.page_range)}</small></div>
+            </td>
+            <td><strong class="text-success">₹${o.total_price.toFixed(2)}</strong></td>
+            <td>
+              <span class="order-status-badge status-${o.status}">
+                ● ${o.status}
+              </span>
+              ${o.rejection_reason ? `<div class="small text-danger mt-1 text-truncate" style="max-width:120px;" title="${escapeHtml(o.rejection_reason)}">Reason: ${escapeHtml(o.rejection_reason)}</div>` : ''}
+            </td>
+            <td><small class="text-muted">${createdDate}</small></td>
+            <td class="text-end">
+              ${actionButtons}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function updateStatus(orderId, newStatus) {
+      const { ok, data } = await apiCall(`/orders/${orderId}/status`, 'PATCH', { status: newStatus });
+      if (ok) {
+        showToast(`Order status updated to ${newStatus}!`);
+        loadOrders();
+        loadStats();
+      } else {
+        showToast(data.error || 'Failed to update order status.', 'error');
+      }
+    }
+
+    function openRejectModal(orderId) {
+      document.getElementById('rejectOrderId').value = orderId;
+      document.getElementById('rejectReasonInput').value = '';
+      rejectModalInstance.show();
+    }
+
+    async function handleConfirmReject() {
+      const orderId = document.getElementById('rejectOrderId').value;
+      const reason = document.getElementById('rejectReasonInput').value.trim();
+
+      const { ok, data } = await apiCall(`/orders/${orderId}/status`, 'PATCH', {
+        status: 'Rejected',
+        rejection_reason: reason
+      });
+
+      if (ok) {
+        rejectModalInstance.hide();
+        showToast('Order rejected.');
+        loadOrders();
+        loadStats();
+      } else {
+        showToast(data.error || 'Failed to reject order.', 'error');
+      }
+    }
+
+    function viewOrderDetails(orderId) {
+      const order = cachedOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const body = document.getElementById('orderDetailsBody');
+      body.innerHTML = `
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="text-muted small">Order ID</label>
+            <div class="font-monospace">${order.id}</div>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small">Status</label>
+            <div><span class="order-status-badge status-${order.status}">● ${order.status}</span></div>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small">Customer Name</label>
+            <div class="fw-bold">${escapeHtml(order.customer_name || 'N/A')}</div>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small">Customer Email</label>
+            <div>${escapeHtml(order.customer_email || 'N/A')}</div>
+          </div>
+          <div class="col-12"><hr class="my-1" /></div>
+          <div class="col-6">
+            <label class="text-muted small">File Name</label>
+            <div class="text-break">${escapeHtml(order.file_name)}</div>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small">File Size</label>
+            <div>${(order.file_size / (1024*1024)).toFixed(2)} MB</div>
+          </div>
+          <div class="col-4">
+            <label class="text-muted small">Mode</label>
+            <div>${order.print_mode.toUpperCase()}</div>
+          </div>
+          <div class="col-4">
+            <label class="text-muted small">Copies</label>
+            <div>${order.copies}</div>
+          </div>
+          <div class="col-4">
+            <label class="text-muted small">Paper Size</label>
+            <div>${order.paper_size || 'A4'}</div>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small">Page Range</label>
+            <div>${escapeHtml(order.page_range)} (${order.printed_pages} pages)</div>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small">Total Cost</label>
+            <div class="fw-bold text-success fs-5">₹${order.total_price.toFixed(2)}</div>
+          </div>
+          ${order.rejection_reason ? `
+            <div class="col-12">
+              <div class="p-2 rounded bg-danger bg-opacity-10 border border-danger text-danger small">
+                <strong>Rejection Reason:</strong> ${escapeHtml(order.rejection_reason)}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+      detailsModalInstance.show();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

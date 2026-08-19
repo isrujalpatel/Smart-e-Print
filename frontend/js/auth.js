@@ -1,6 +1,7 @@
 /**
  * Smart e-Print — Authentication Module
  * Handles JWT storage, API calls, route guards and UI helpers.
+ * Strict 3-role routing: customer, admin, super_admin.
  * Requires: config.js loaded before this file.
  */
 
@@ -54,23 +55,26 @@ async function apiCall(endpoint, method = 'GET', body = null) {
    AUTH API ACTIONS
    ============================================================ */
 
-async function registerUser(name, email, password, role) {
-  return apiCall('/auth/register', 'POST', { name, email, password, role });
+async function registerUser(name, email, password) {
+  return apiCall('/auth/register', 'POST', { name, email, password });
 }
 
 async function loginUser(email, password) {
   return apiCall('/auth/login', 'POST', { email, password });
 }
 
-async function googleAuthUser(credential, role = 'customer') {
-  return apiCall('/auth/google', 'POST', { credential, role });
+async function googleAuthUser(credential) {
+  return apiCall('/auth/google', 'POST', { credential });
 }
 
 async function fetchCurrentUser() {
   return apiCall('/auth/me', 'GET');
 }
 
-function logout() {
+async function logout() {
+  try {
+    await apiCall('/auth/logout', 'POST');
+  } catch (e) {}
   clearAuth();
   window.location.href = CONFIG.ROUTES.LOGIN;
 }
@@ -80,8 +84,10 @@ function logout() {
    ============================================================ */
 
 function redirectByRole(role) {
-  if (role === 'owner') {
-    window.location.href = CONFIG.ROUTES.OWNER_DASHBOARD;
+  if (role === 'super_admin') {
+    window.location.href = CONFIG.ROUTES.SUPER_ADMIN_DASHBOARD;
+  } else if (role === 'admin' || role === 'owner') {
+    window.location.href = CONFIG.ROUTES.ADMIN_DASHBOARD;
   } else {
     window.location.href = CONFIG.ROUTES.CUSTOMER_DASHBOARD;
   }
@@ -92,24 +98,44 @@ function redirectByRole(role) {
    ============================================================ */
 
 /**
- * requireAuth(requiredRole?)
+ * requireAuth(allowedRoles?)
  * - If no token → redirect to login.
  * - Fetches /auth/me to validate token with the backend.
+ * - If user is disabled → clearAuth & redirect to login with error.
  * - If wrong role → redirect to correct dashboard.
  * - Returns the user object on success, null otherwise.
  */
-async function requireAuth(requiredRole = null) {
-  if (!getToken()) { window.location.href = CONFIG.ROUTES.LOGIN; return null; }
+async function requireAuth(allowedRoles = null) {
+  if (!getToken()) {
+    window.location.href = CONFIG.ROUTES.LOGIN;
+    return null;
+  }
 
   const { ok, data } = await fetchCurrentUser();
-  if (!ok) { clearAuth(); window.location.href = CONFIG.ROUTES.LOGIN; return null; }
+  if (!ok || !data.user) {
+    clearAuth();
+    window.location.href = CONFIG.ROUTES.LOGIN;
+    return null;
+  }
 
   const user = data.user;
   setStoredUser(user);
 
-  if (requiredRole && user.role !== requiredRole) {
-    redirectByRole(user.role); // send to their correct dashboard
+  if (user.is_active === false) {
+    clearAuth();
+    alert("Your account has been deactivated. Please contact an administrator.");
+    window.location.href = CONFIG.ROUTES.LOGIN;
     return null;
+  }
+
+  if (allowedRoles) {
+    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    // Map legacy 'owner' to 'admin'
+    const userRole = (user.role === 'owner') ? 'admin' : user.role;
+    if (!roles.includes(userRole)) {
+      redirectByRole(userRole);
+      return null;
+    }
   }
 
   return user;
@@ -123,7 +149,9 @@ async function requireAuth(requiredRole = null) {
 function redirectIfLoggedIn() {
   const token = getToken();
   const user  = getStoredUser();
-  if (token && user) redirectByRole(user.role);
+  if (token && user) {
+    redirectByRole(user.role);
+  }
 }
 
 /* ============================================================
@@ -131,10 +159,14 @@ function redirectIfLoggedIn() {
    ============================================================ */
 
 function showToast(message, type = 'success') {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    document.body.appendChild(container);
+  }
 
-  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
   const toast = document.createElement('div');
   toast.className = `toast-item ${type}`;
   toast.innerHTML =
@@ -153,6 +185,7 @@ function showToast(message, type = 'success') {
    ============================================================ */
 
 function setLoading(btn, loading) {
+  if (!btn) return;
   if (loading) {
     btn.dataset.txt = btn.innerHTML;
     btn.innerHTML = '<span class="btn-text" style="visibility:hidden">&nbsp;</span>';
@@ -170,11 +203,15 @@ function showFormError(id, msg) {
   if (!el) return;
   el.textContent = msg;
   el.className = 'form-alert error';
+  el.style.display = 'flex';
 }
 
 function hideFormAlert(id) {
   const el = document.getElementById(id);
-  if (el) el.className = 'form-alert';
+  if (el) {
+    el.className = 'form-alert';
+    el.style.display = 'none';
+  }
 }
 
 /* ============================================================
