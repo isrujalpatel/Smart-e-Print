@@ -84,49 +84,52 @@ def create_app(config_class=Config):
 
     # ── Create tables and apply schema migrations on startup ──────────────────
     with app.app_context():
-        # Step 1: Execute direct DDL migrations (idempotent)
-        try:
-            # Drop old constraint and update check constraint
-            db.session.execute(db.text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check"))
-            db.session.execute(db.text(
-                "ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer', 'admin', 'super_admin', 'owner'))"
-            ))
-            db.session.execute(db.text("UPDATE users SET role = 'admin' WHERE role = 'owner'"))
+        is_sqlite = app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite')
 
-            # Users table columns
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255)"))
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE"))
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ"))
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0"))
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()"))
-            db.session.execute(db.text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
+        if is_sqlite:
+            # SQLite: let SQLAlchemy create all tables from models — no raw DDL needed
+            db.create_all()
+            print("✅  SQLite database tables created (local dev mode)")
+        else:
+            # PostgreSQL: apply idempotent DDL migrations
+            try:
+                db.session.execute(db.text("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check"))
+                db.session.execute(db.text(
+                    "ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer', 'admin', 'super_admin', 'owner'))"
+                ))
+                db.session.execute(db.text("UPDATE users SET role = 'admin' WHERE role = 'owner'"))
 
-            # Create audit_logs table if not present
-            db.session.execute(db.text("""
-                CREATE TABLE IF NOT EXISTS audit_logs (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-                    user_email VARCHAR(255),
-                    actor_role VARCHAR(30),
-                    action VARCHAR(100) NOT NULL,
-                    details TEXT,
-                    ip_address VARCHAR(50),
-                    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255)"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0"))
+                db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()"))
+                db.session.execute(db.text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
 
-            # Print orders table columns
-            db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(100)"))
-            db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)"))
-            db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT"))
-            db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()"))
-            db.session.execute(db.text("ALTER TABLE print_orders ALTER COLUMN user_id DROP NOT NULL"))
+                db.session.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS audit_logs (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                        user_email VARCHAR(255),
+                        actor_role VARCHAR(30),
+                        action VARCHAR(100) NOT NULL,
+                        details TEXT,
+                        ip_address VARCHAR(50),
+                        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
 
-            db.session.commit()
-            print("✅  Database schema & migrations ready")
-        except Exception as e:
-            db.session.rollback()
-            print(f"ℹ️   Migration note: {e}")
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(100)"))
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)"))
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT"))
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()"))
+                db.session.execute(db.text("ALTER TABLE print_orders ALTER COLUMN user_id DROP NOT NULL"))
+
+                db.session.commit()
+                print("✅  PostgreSQL schema & migrations ready")
+            except Exception as e:
+                db.session.rollback()
+                print(f"ℹ️   Migration note: {e}")
 
         # ── Seed Initial Accounts if not present ──────────────────────────────
         try:
