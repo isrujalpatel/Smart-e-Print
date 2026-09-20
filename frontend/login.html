@@ -4,167 +4,611 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign In — Smart e-Print</title>
-  <meta name="description" content="Sign in to Smart e-Print to manage your print orders, operations, or system settings." />
+  <meta name="description" content="Sign in to Smart e-Print to manage your print orders and track status in real-time." />
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-  <link href="css/style.css" rel="stylesheet" />
-  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0c1220;
+      --navy-light: #111827;
+      --blue:       #2563eb;
+      --blue-dark:  #1d4ed8;
+      --blue-glow:  rgba(37, 99, 235, 0.15);
+      --white:      #ffffff;
+      --off-white:  #f9fafb;
+      --border:     #e5e7eb;
+      --text-main:  #111827;
+      --text-sub:   #6b7280;
+      --text-muted: #9ca3af;
+      --font:       'Inter', -apple-system, sans-serif;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font);
+      background: var(--navy);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────────────────────────── */
+    .page {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       LEFT  — Dark branding panel
+    ═══════════════════════════════════════════════════════════════════════════ */
+    .panel-left {
+      position: relative;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      padding: 52px 56px;
+      overflow: hidden;
+      justify-content: space-between;
+    }
+
+    /* Faint diagonal lines texture */
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 40px,
+        rgba(255,255,255,0.018) 40px,
+        rgba(255,255,255,0.018) 41px
+      );
+      pointer-events: none;
+    }
+
+    /* Single soft blue glow blob */
+    .glow-blob {
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 68%);
+      bottom: -60px;
+      right: -80px;
+      pointer-events: none;
+      border-radius: 50%;
+    }
+
+    /* Brand */
+    .brand {
+      position: relative;
+      z-index: 2;
+    }
+    .brand-name {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.4px;
+      line-height: 1;
+    }
+    .brand-sub {
+      font-size: 0.68rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.5px;
+      margin-top: 5px;
+      text-transform: uppercase;
+    }
+
+    /* Centre copy */
+    .panel-copy {
+      position: relative;
+      z-index: 2;
+    }
+    .panel-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--blue);
+      background: rgba(37,99,235,0.12);
+      border: 1px solid rgba(37,99,235,0.22);
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    .panel-headline {
+      font-size: clamp(1.9rem, 2.8vw, 2.5rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.18;
+      letter-spacing: -0.6px;
+      margin-bottom: 18px;
+    }
+    .panel-headline em {
+      font-style: normal;
+      color: #2563eb;
+      -webkit-text-fill-color: #2563eb;
+    }
+    .panel-desc {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.42);
+      line-height: 1.75;
+      max-width: 340px;
+      margin-bottom: 38px;
+    }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+    .checklist li {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-size: 0.84rem;
+      color: rgba(255,255,255,0.55);
+      font-weight: 400;
+    }
+    .checklist li i {
+      font-size: 0.95rem;
+      color: #34d399;
+      flex-shrink: 0;
+    }
+
+    /* Footer */
+    .panel-foot {
+      position: relative;
+      z-index: 2;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.2px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RIGHT — Form panel
+    ═══════════════════════════════════════════════════════════════════════════ */
+    .panel-right {
+      background: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 52px 40px;
+      position: relative;
+    }
+
+    /* thin accent rule on the divider */
+    .panel-right::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 12%; bottom: 12%;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, var(--blue) 50%, transparent);
+      opacity: 0.25;
+    }
+
+    .form-box {
+      width: 100%;
+      max-width: 380px;
+    }
+
+    /* Heading */
+    .form-kicker {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+    .form-heading {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+      line-height: 1.15;
+    }
+    .form-lead {
+      font-size: 0.865rem;
+      color: var(--text-sub);
+      margin-bottom: 30px;
+      line-height: 1.55;
+    }
+
+    /* Alert */
+    .f-alert {
+      display: none;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin-bottom: 18px;
+      font-weight: 500;
+    }
+    .f-alert.error {
+      display: flex;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+    }
+
+    /* Field */
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 7px;
+      letter-spacing: 0.05px;
+    }
+    .input-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-row i.ico {
+      position: absolute;
+      left: 13px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      pointer-events: none;
+      transition: color 0.18s;
+    }
+    .input-row input {
+      width: 100%;
+      padding: 12px 13px 12px 40px;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: var(--text-main);
+      background: var(--off-white);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+      -webkit-appearance: none;
+    }
+    .input-row input::placeholder { color: var(--text-muted); font-size: 0.88rem; }
+    .input-row input:focus {
+      background: #fff;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3.5px var(--blue-glow);
+    }
+    .input-row input:focus ~ i.ico,
+    .input-row:focus-within i.ico { color: var(--blue); }
+
+    /* pw toggle */
+    .pw-eye {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.18s;
+      z-index: 1;
+    }
+    .pw-eye:hover { color: var(--blue); }
+
+    /* Submit button */
+    .btn-primary {
+      width: 100%;
+      height: 48px;
+      margin-top: 6px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-family: var(--font);
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: 0.1px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.18s, transform 0.14s, box-shadow 0.18s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(37,99,235,0.28);
+    }
+    .btn-primary:hover {
+      background: var(--blue-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 6px 18px rgba(37,99,235,0.36);
+    }
+    .btn-primary:active { transform: translateY(0); box-shadow: none; }
+    .btn-primary.loading { pointer-events: none; opacity: 0.72; }
+    .btn-primary.loading .btn-text { opacity: 0; }
+    .btn-primary.loading::after {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* Google button container */
+    .google-wrap {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      min-height: 44px;
+    }
+    .google-wrap > div,
+    .google-wrap iframe { width: 100% !important; border-radius: 9px; }
+
+    /* Footer link */
+    .f-link {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 0.84rem;
+      color: var(--text-sub);
+    }
+    .f-link a {
+      color: var(--blue);
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .f-link a:hover { color: var(--blue-dark); }
+
+    /* Toast */
+    #toastContainer {
+      position: fixed;
+      top: 20px; right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast-item {
+      background: #111827;
+      color: #f9fafb;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      animation: toastIn 0.3s ease;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .page { grid-template-columns: 1fr; }
+      .panel-left { display: none; }
+      .panel-right { padding: 48px 24px; min-height: 100vh; }
+      .panel-right::before { display: none; }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Animated Background -->
-  <div class="bg-animated">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-  </div>
+<div id="toastContainer"></div>
 
-  <!-- Toast Container -->
-  <div id="toastContainer"></div>
+<div class="page">
 
-  <!-- ── Auth Card ─────────────────────────────────────────────────────────── -->
-  <div class="auth-page-wrap">
-    <div class="glass-card auth-card">
+  <!-- ══ LEFT PANEL ════════════════════════════════════════════════════════════ -->
+  <aside class="panel-left">
+    <div class="glow-blob"></div>
 
-      <!-- Logo -->
-      <div class="auth-logo">
-        <a href="index.html" style="text-decoration:none;">
-          <div class="brand-name gradient-text">Smart e-Print</div>
-          <div class="brand-sub">Umiya Graphics &amp; Printing</div>
-        </a>
-      </div>
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-name">Smart e-Print</div>
+      <div class="brand-sub">Umiya Graphics &amp; Printing</div>
+    </div>
 
-      <h1 class="auth-heading">Welcome back 👋</h1>
-      <p class="auth-subheading">Sign in with your email and password</p>
+    <!-- Main copy -->
+    <div class="panel-copy">
+      <h1 class="panel-headline">
+        Drop a File.<br/>
+        <em>Get a Paper.</em>
+      </h1>
+      <p class="panel-desc">
+        Upload your documents, configure print settings, and track every order in
+        real-time — all from one platform built for the modern printing shop.
+      </p>
+      <ul class="checklist">
+        <li><i class="bi bi-check-circle-fill"></i> Upload PDF &amp; images with instant page detection</li>
+        <li><i class="bi bi-check-circle-fill"></i> Colour / B&amp;W, copies, page range &amp; paper size</li>
+        <li><i class="bi bi-check-circle-fill"></i> Real-time order tracking &amp; auto cost calculation</li>
+      </ul>
+    </div>
 
-      <!-- Error Alert -->
-      <div id="formAlert" class="form-alert" role="alert" style="display:none;"></div>
+    <!-- Footer -->
+    <p class="panel-foot">Smart e-Print &copy; 2026 &mdash; Umiya Graphics &amp; Printing, Gujarat</p>
+  </aside>
 
-      <!-- ── Login Form ──────────────────────────────────────────────────── -->
+  <!-- ══ RIGHT PANEL ═══════════════════════════════════════════════════════════ -->
+  <main class="panel-right">
+    <div class="form-box">
+
+      <p class="form-kicker">Welcome back</p>
+      <h2 class="form-heading">Sign in to your account</h2>
+      <p class="form-lead">Enter your email and password to continue</p>
+
+      <!-- Alert -->
+      <div id="formAlert" class="f-alert" role="alert"></div>
+
+      <!-- Form -->
       <form id="loginForm" novalidate autocomplete="on">
 
-        <!-- Email -->
-        <div class="form-floating-custom">
-          <input
-            type="email"
-            id="loginEmail"
-            placeholder="email"
-            autocomplete="email"
-            required
-          />
-          <label for="loginEmail"><i class="bi bi-envelope me-1"></i>Email address</label>
+        <div class="field">
+          <label for="loginEmail">Email address</label>
+          <div class="input-row">
+            <i class="bi bi-envelope ico"></i>
+            <input type="email" id="loginEmail"
+                   placeholder="you@example.com"
+                   autocomplete="email" required />
+          </div>
         </div>
 
-        <!-- Password -->
-        <div class="form-floating-custom password-wrapper">
-          <input
-            type="password"
-            id="loginPassword"
-            placeholder="password"
-            autocomplete="current-password"
-            required
-          />
-          <label for="loginPassword"><i class="bi bi-lock me-1"></i>Password</label>
-          <button type="button" class="password-toggle" id="pwToggle" aria-label="Show/hide password">
-            <i class="bi bi-eye" id="pwToggleIcon"></i>
-          </button>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <div class="input-row">
+            <i class="bi bi-lock ico"></i>
+            <input type="password" id="loginPassword"
+                   placeholder="Enter your password"
+                   autocomplete="current-password" required />
+            <button type="button" class="pw-eye" id="pwToggle" aria-label="Toggle password visibility">
+              <i class="bi bi-eye" id="pwIcon"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- Submit -->
-        <button type="submit" class="btn-gradient w-100 mt-2" id="loginBtn"
-                style="height:50px;position:relative;">
-          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        <button type="submit" class="btn-primary" id="loginBtn">
+          <span class="btn-text"><i class="bi bi-box-arrow-in-right"></i>&nbsp; Sign In</span>
         </button>
 
       </form>
 
-      <!-- ── Google Sign-In ──────────────────────────────────────────────── -->
-      <div class="auth-divider">or continue with</div>
+      <div class="divider">or continue with</div>
+      <div id="googleBtnContainer" class="google-wrap"></div>
 
-      <!-- GIS renders the official Google button here -->
-      <div id="googleBtnContainer" class="google-btn-wrap"></div>
-
-      <p class="auth-link-text" style="margin-top:20px;">
-        Don't have an account? <a href="register.html" id="goRegisterLink">Create Customer Account</a>
+      <p class="f-link">
+        Don't have an account?
+        <a href="register.html">Create Customer Account</a>
       </p>
 
     </div>
-  </div><!-- /.auth-page-wrap -->
+  </main>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
-  <script>
-    // Already logged in? Skip this page.
-    redirectIfLoggedIn();
+</div><!-- /.page -->
 
-    // Password toggle
-    initPasswordToggle('loginPassword', 'pwToggle', 'pwToggleIcon');
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  redirectIfLoggedIn();
 
-    // ── Form submit ─────────────────────────────────────────────────────────
-    document.getElementById('loginForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      hideFormAlert('formAlert');
+  /* ── Password toggle ──────────────────────────────────────────────────────── */
+  const pwInput = document.getElementById('loginPassword');
+  const pwIcon  = document.getElementById('pwIcon');
+  document.getElementById('pwToggle').addEventListener('click', () => {
+    const show = pwInput.type === 'password';
+    pwInput.type = show ? 'text' : 'password';
+    pwIcon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+  });
 
-      const email    = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      const btn      = document.getElementById('loginBtn');
+  /* ── Focus icon colour ────────────────────────────────────────────────────── */
+  document.querySelectorAll('.input-row input').forEach(inp => {
+    inp.addEventListener('focus', () => inp.closest('.input-row').querySelector('.ico').style.color = '#2563eb');
+    inp.addEventListener('blur',  () => inp.closest('.input-row').querySelector('.ico').style.color = '');
+  });
 
-      if (!email || !password) {
-        showFormError('formAlert', '⚠ Please enter both email and password.');
-        return;
-      }
+  /* ── Alert helper ─────────────────────────────────────────────────────────── */
+  function showAlert(msg) {
+    const el = document.getElementById('formAlert');
+    el.className = 'f-alert error';
+    el.innerHTML = '<i class="bi bi-exclamation-circle"></i> ' + msg;
+  }
+  function clearAlert() {
+    const el = document.getElementById('formAlert');
+    el.className = 'f-alert';
+    el.innerHTML = '';
+  }
 
-      setLoading(btn, true);
-      const { ok, data } = await loginUser(email, password);
-      setLoading(btn, false);
+  /* ── Form submit ──────────────────────────────────────────────────────────── */
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert();
 
-      if (ok) {
-        setToken(data.token);
-        setStoredUser(data.user);
-        showToast('Welcome back, ' + data.user.name + '! 🎉');
-        setTimeout(() => redirectByRole(data.user.role), 600);
-      } else {
-        showFormError('formAlert', '✕ ' + (data.error || 'Login failed. Please check your credentials.'));
-      }
-    });
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn      = document.getElementById('loginBtn');
 
-    // ── Google Sign-In ──────────────────────────────────────────────────────
-    const GOOGLE_CLIENT_ID = '424686117630-cblseu5hg9mhhfg03mv1eeg4g51rqa2u.apps.googleusercontent.com';
-
-    async function handleGoogleCredential(response) {
-      hideFormAlert('formAlert');
-      const { ok, data } = await googleAuthUser(response.credential);
-      if (ok) {
-        setToken(data.token);
-        setStoredUser(data.user);
-        showToast('Welcome, ' + data.user.name + '! 🎉');
-        setTimeout(() => redirectByRole(data.user.role), 600);
-      } else {
-        showFormError('formAlert', '✕ ' + (data.error || 'Google sign-in failed. Please try again.'));
-      }
+    if (!email || !password) {
+      showAlert('Please enter both email and password.');
+      return;
     }
 
-    window.onGoogleLibraryLoad = function () {
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredential,
-        use_fedcm_for_prompt: true,
+    btn.classList.add('loading');
+    const { ok, data } = await loginUser(email, password);
+    btn.classList.remove('loading');
+
+    if (ok) {
+      setToken(data.token);
+      setStoredUser(data.user);
+      showToast('Welcome back, ' + data.user.name + '! 🎉');
+      setTimeout(() => redirectByRole(data.user.role), 600);
+    } else {
+      showAlert(data.error || 'Login failed. Please check your credentials.');
+    }
+  });
+
+  /* ── Google Sign-In ───────────────────────────────────────────────────────── */
+  const GOOGLE_CLIENT_ID = '424686117630-cblseu5hg9mhhfg03mv1eeg4g51rqa2u.apps.googleusercontent.com';
+
+  async function handleGoogleCredential(response) {
+    clearAlert();
+    const { ok, data } = await googleAuthUser(response.credential);
+    if (ok) {
+      setToken(data.token);
+      setStoredUser(data.user);
+      showToast('Welcome, ' + data.user.name + '! 🎉');
+      setTimeout(() => redirectByRole(data.user.role), 600);
+    } else {
+      showAlert(data.error || 'Google sign-in failed. Please try again.');
+    }
+  }
+
+  window.onGoogleLibraryLoad = function () {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      use_fedcm_for_prompt: true,
+    });
+    const container = document.getElementById('googleBtnContainer');
+    if (container) {
+      google.accounts.id.renderButton(container, {
+        theme: 'outline', size: 'large', shape: 'rectangular',
+        width: Math.min(container.parentElement.offsetWidth, 380),
+        text: 'signin_with', logo_alignment: 'left',
       });
-      const container = document.getElementById('googleBtnContainer');
-      if (container) {
-        google.accounts.id.renderButton(container, {
-          theme: 'outline',
-          size: 'large',
-          shape: 'rectangular',
-          width: Math.min(container.parentElement.offsetWidth - 2, 400),
-          text: 'signin_with',
-          logo_alignment: 'left',
-        });
-      }
-    };
-  </script>
+    }
+  };
+</script>
 </body>
 </html>
