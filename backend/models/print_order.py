@@ -27,6 +27,8 @@ class PrintOrder(db.Model):
     unit_rate        = db.Column(db.Float, nullable=False)
     multiplier       = db.Column(db.Float, nullable=False)
     total_price      = db.Column(db.Float, nullable=False)
+    payment_method   = db.Column(db.String(20), nullable=True, default="cash")
+    payment_status   = db.Column(db.String(20), nullable=True, default="pending")
     status           = db.Column(db.String(30), nullable=False, default="Submitted")
     rejection_reason = db.Column(db.Text, nullable=True)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -58,6 +60,8 @@ class PrintOrder(db.Model):
             "unit_rate":        self.unit_rate,
             "multiplier":       self.multiplier,
             "total_price":      self.total_price,
+            "payment_method":   self.payment_method,
+            "payment_status":   self.payment_status,
             "status":           self.status,
             "rejection_reason": self.rejection_reason,
             "created_at":       self.created_at.isoformat() if self.created_at else None,

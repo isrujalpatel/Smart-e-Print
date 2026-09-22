@@ -8,9 +8,11 @@ from extensions import db, bcrypt
 from routes.auth import auth_bp
 from routes.orders import orders_bp
 from routes.super_admin import super_admin_bp
+from routes.shop import shop_bp
 from models.user import User
 from models.print_order import PrintOrder
 from models.audit_log import AuditLog
+from models.shop_config import ShopConfig
 
 
 def create_app(config_class=Config):
@@ -40,7 +42,7 @@ def create_app(config_class=Config):
     # ── Error handlers — return JSON with CORS headers on crashes ────────────
     @app.errorhandler(500)
     def handle_500(e):
-        print(f"🔴 500 ERROR: {e}")
+        print(f"[ERROR] 500: {e}")
         traceback.print_exc()
         resp = jsonify({"error": "Internal server error", "detail": str(e)})
         resp.status_code = 500
@@ -65,20 +67,21 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(orders_bp, url_prefix="/api/orders")
     app.register_blueprint(super_admin_bp, url_prefix="/api/super-admin")
+    app.register_blueprint(shop_bp, url_prefix="/api/shop")
 
     # ── Health check ────────────────────────────────────────────────────────────
     @app.route("/")
     @app.route("/health")
     @app.route("/api/health")
     def health():
-        return jsonify({"status": "ok", "message": "Smart e-Print API is running 🚀"})
+        return jsonify({"status": "ok", "message": "Smart e-Print API is running"})
 
     # ── Debug: test DB connection ────────────────────────────────────────────────
     @app.route("/api/debug/db")
     def debug_db():
         try:
             db.session.execute(db.text("SELECT 1"))
-            return jsonify({"status": "ok", "database": "connected ✅"})
+            return jsonify({"status": "ok", "database": "connected"})
         except Exception as e:
             return jsonify({"status": "error", "database": str(e)}), 500
 
@@ -89,7 +92,7 @@ def create_app(config_class=Config):
         if is_sqlite:
             # SQLite: let SQLAlchemy create all tables from models — no raw DDL needed
             db.create_all()
-            print("✅  SQLite database tables created (local dev mode)")
+            print("[OK] SQLite database tables created (local dev mode)")
         else:
             # PostgreSQL: apply idempotent DDL migrations
             try:
@@ -121,15 +124,26 @@ def create_app(config_class=Config):
 
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(100)"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)"))
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) DEFAULT 'cash'"))
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'pending'"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()"))
                 db.session.execute(db.text("ALTER TABLE print_orders ALTER COLUMN user_id DROP NOT NULL"))
+                
+                db.session.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS shop_configs (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        config_key VARCHAR(50) UNIQUE NOT NULL,
+                        config_val JSONB NOT NULL,
+                        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
 
                 db.session.commit()
-                print("✅  PostgreSQL schema & migrations ready")
+                print("[OK] PostgreSQL schema & migrations ready")
             except Exception as e:
                 db.session.rollback()
-                print(f"ℹ️   Migration note: {e}")
+                print(f"[INFO] Migration note: {e}")
 
         # ── Seed Initial Accounts if not present ──────────────────────────────
         try:
@@ -148,7 +162,7 @@ def create_app(config_class=Config):
                     )
                     db.session.add(sa_user)
                     db.session.commit()
-                    print(f"👑  Default Super Admin seeded: {sa_email} (Password: 020807)")
+                    print(f"[ADMIN] Default Super Admin seeded: {sa_email} (Password: 020807)")
                 else:
                     sa_user.role = "super_admin"
                     sa_user.password_hash = bcrypt.generate_password_hash("020807").decode("utf-8")
@@ -169,15 +183,27 @@ def create_app(config_class=Config):
                     )
                     db.session.add(adm_user)
                     db.session.commit()
-                    print(f"🏪  Default Admin seeded: {adm_email} (Password: 020807)")
+                    print(f"[ADMIN] Default Admin seeded: {adm_email} (Password: 020807)")
                 else:
                     adm_user.role = "admin"
                     adm_user.password_hash = bcrypt.generate_password_hash("020807").decode("utf-8")
                     db.session.commit()
+            
+            # 3. Default Shop Config (Rate Card)
+            rates_config = ShopConfig.query.filter_by(config_key="rate_card").first()
+            if not rates_config:
+                default_rates = {
+                    "PRICE_RATES": {"bw": 2.0, "color": 5.0},
+                    "PAPER_MULTIPLIERS": {"A4": 1.0, "A3": 1.25, "Letter": 1.1}
+                }
+                rates_config = ShopConfig(config_key="rate_card", config_val=default_rates)
+                db.session.add(rates_config)
+                db.session.commit()
+                print("[RATES] Default rate card seeded.")
 
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️  Seeding warning: {e}")
+            print(f"[WARN] Seeding warning: {e}")
 
     return app
 
@@ -186,5 +212,5 @@ def create_app(config_class=Config):
 app = create_app()
 
 if __name__ == "__main__":
-    print("🚀  Smart e-Print backend  →  http://localhost:5000")
+    print("[START] Smart e-Print backend  ->  http://localhost:5000")
     app.run(debug=True, host="0.0.0.0", port=5000)

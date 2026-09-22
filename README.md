@@ -17,6 +17,19 @@
 
 ---
 
+## Backend Implementation Status
+- **`routes/`**:
+  - - [x] `routes/orders.py` — File upload handling, pricing engine, queue management, secure downloads
+  - - [ ] `routes/super_admin.py` — System-wide analytics and user management
+  - - [x] `routes/shop.py` — Rate card management
+- **`models/`**:
+  - `user.py` — Authentication and RBAC
+  - `print_order.py` — Core transaction and file metadata
+  - `shop_config.py` — Dynamic rate cards
+  - `audit_log.py` — Security tracking
+
+---
+
 ## 2. Backend Setup
 
 ```bash

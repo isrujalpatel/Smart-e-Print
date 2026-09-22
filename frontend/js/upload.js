@@ -3,14 +3,15 @@
  * Requires: config.js, auth.js, dashboard.js loaded before this file.
  */
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
-const PRICE_RATES = { bw: 2.0, color: 5.0 };
-const PAPER_MULTIPLIERS = { A4: 1.0, A3: 1.25, Letter: 1.1 };
+let PRICE_RATES = { bw: 2.0, color: 5.0 };
+let PAPER_MULTIPLIERS = { A4: 1.0, A3: 1.25, Letter: 1.1 };
 
 let uploadedFiles = [];
 let activeFileId = null;
 let fileIdCounter = 0;
 
-function initUploadPage() {
+async function initUploadPage() {
+  await fetchRates();
   const fileInput = document.getElementById('fileInput');
   const submitBtn = document.getElementById('submitOrderBtn');
 
@@ -57,6 +58,18 @@ function initUploadPage() {
 
   submitBtn.addEventListener('click', handleSubmitOrder);
   renderSummary();
+}
+
+async function fetchRates() {
+  try {
+    const { ok, data } = await apiCall('/shop/rates', 'GET');
+    if (ok && data) {
+      if (data.PRICE_RATES) PRICE_RATES = data.PRICE_RATES;
+      if (data.PAPER_MULTIPLIERS) PAPER_MULTIPLIERS = data.PAPER_MULTIPLIERS;
+    }
+  } catch (err) {
+    console.warn("Could not fetch latest rates. Using fallback defaults.");
+  }
 }
 
 function getActiveFile() {
@@ -377,6 +390,9 @@ async function handleSubmitOrder() {
       formData.append('range_type', file.rangeMode);
       formData.append('page_range', file.pageRange);
       formData.append('paper_size', file.paperSize);
+      
+      const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
+      formData.append('payment_method', paymentMethod);
 
       const response = await fetch(`${CONFIG.API_BASE}/orders`, {
         method: 'POST',

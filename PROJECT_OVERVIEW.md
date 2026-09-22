@@ -16,21 +16,21 @@ The **Smart E-Printing Software** is a web-based application designed to digitiz
 
 ## 2. System Overview & Functionality
 
-### User Roles & Capabilities
+### Customer (User) Features
+- [x] **Secure Authentication:** Registration and Google OAuth (mocked) integration.
+- [x] **Document Upload:** Support for PDF and common image formats.
+- [x] **Print Configuration:** Select color/B&W, copies, and specific page ranges.
+- [x] **Smart Pricing Engine:** Real-time price estimation based on page count and settings.
+- [x] **Live Order Tracking:** Status updates (Submitted, Printing, Completed, Rejected).
+- [x] **Payment Selection:** Choose between Cash on Pickup or Online.
 
-#### 1. Customer
-- **Document Upload:** Upload PDF files and images.
-- **Print Configuration:** Select Color / Black & White, number of copies, page ranges, and optional paper sizes.
-- **Cost Estimation:** View instant, automatically calculated price breakdown.
-- **Order Tracking:** Follow live status updates of submitted orders.
-- **Payment Options:** Pay via online payment gateway or cash on pickup.
-- **Order History:** Access previous print order records.
-
-#### 2. Owner / Admin
-- **Order Management:** View incoming print requests and inspect uploaded documents.
-- **Order Action:** Accept orders or reject them with mandatory rejection reasons.
-- **Pricing & Rate Management:** Set and adjust rate cards for B&W, Color, paper sizes, etc.
-- **Analytics & Reporting:** Access automated daily and monthly revenue dashboards and print volume metrics.
+### Shop Owner (Admin) Features
+- [x] **Role-Based Access Control:** Secure routes for shop management.
+- [x] **Live Print Queue:** Real-time dashboard to manage incoming orders.
+- [x] **Order Fulfillment:** Approve, Reject (with reason), and mark jobs as Completed.
+- [x] **File Access:** Secure preview/download of customer documents.
+- [x] **Rate Card Management:** Dynamically adjust pricing for color, B&W, and paper sizes.
+- [x] **Business Analytics:** Basic stats on revenue, pending orders, and total volume.d daily and monthly revenue dashboards and print volume metrics.
 
 ---
 

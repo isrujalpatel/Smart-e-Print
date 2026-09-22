@@ -10,6 +10,7 @@
  * Returns the authenticated user object, or null (and redirects) on failure.
  */
 async function initDashboard(requiredRole) {
+  await fetchDashRates();
   const user = await requireAuth(requiredRole);
   if (!user) return null;
 
@@ -38,6 +39,18 @@ async function initDashboard(requiredRole) {
   }
 
   return user;
+}
+
+async function fetchDashRates() {
+  try {
+    const { ok, data } = await apiCall('/shop/rates', 'GET');
+    if (ok && data) {
+      if (data.PRICE_RATES) DASH_PRICE_RATES = data.PRICE_RATES;
+      if (data.PAPER_MULTIPLIERS) DASH_PAPER_MULTIPLIERS = data.PAPER_MULTIPLIERS;
+    }
+  } catch (err) {
+    console.warn("Could not fetch latest rates on dashboard.");
+  }
 }
 
 /**
@@ -116,8 +129,8 @@ function escapeHtml(str) {
 
 // ── DASHBOARD UPLOAD FEATURE ────────────────────────────────────────────────
 const DASH_UPLOAD_MAX = 10 * 1024 * 1024;
-const DASH_PRICES = { bw: 2.0, color: 5.0 };
-const DASH_PAPER = { A4: 1.0, A3: 1.25, Letter: 1.1 };
+let DASH_PRICE_RATES = { bw: 2.0, color: 5.0 };
+let DASH_PAPER_MULTIPLIERS = { A4: 1.0, A3: 1.25, Letter: 1.1 };
 
 let dashUploadedFiles = [];
 let dashActiveFileId = null;
@@ -363,8 +376,8 @@ function calculateDashFileCost(file) {
   }
   if (file.pages === 0) selectedPages = 0;
   
-  const rate = DASH_PRICES[file.printMode] || DASH_PRICES.bw;
-  const multiplier = DASH_PAPER[file.paperSize] || 1.0;
+  const rate = DASH_PRICE_RATES[file.printMode] || DASH_PRICE_RATES.bw;
+  const multiplier = DASH_PAPER_MULTIPLIERS[file.paperSize] || 1.0;
   return selectedPages * file.copies * rate * multiplier;
 }
 
@@ -428,6 +441,9 @@ async function handleDashSubmitOrder() {
       formData.append('range_type', file.rangeMode);
       formData.append('page_range', file.pageRange);
       formData.append('paper_size', file.paperSize);
+
+      const paymentMethod = document.querySelector('input[name="dashPaymentMethod"]:checked')?.value || 'cash';
+      formData.append('payment_method', paymentMethod);
 
       const response = await fetch(`${CONFIG.API_BASE}/orders`, {
         method: 'POST',

@@ -3,7 +3,7 @@ import re
 import uuid
 from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from werkzeug.utils import secure_filename
 from PyPDF2 import PdfReader
 
@@ -11,6 +11,7 @@ from extensions import db
 from middleware.auth_required import token_required, role_required
 from models.print_order import PrintOrder
 from models.audit_log import AuditLog
+from models.shop_config import ShopConfig
 
 orders_bp = Blueprint("orders", __name__)
 
@@ -22,8 +23,6 @@ ALLOWED_MIME = {
     "jpeg": ["image/jpeg", "image/pjpeg"],
 }
 FILE_SIZE_LIMIT = 10 * 1024 * 1024
-PRICE_RATES = {"bw": 2.0, "color": 5.0}
-PAPER_MULTIPLIERS = {"A4": 1.0, "A3": 1.25, "Letter": 1.1}
 VALID_STATUSES = {"Submitted", "Accepted", "Rejected", "Printing", "Completed"}
 
 
@@ -118,8 +117,16 @@ def _parse_page_range(raw_range: str, page_count: int) -> int:
 
 
 def _calculate_price(print_mode: str, printed_pages: int, copies: int, paper_size: str):
-    rate = PRICE_RATES.get(print_mode, PRICE_RATES['bw'])
-    multiplier = PAPER_MULTIPLIERS.get(paper_size, 1.0)
+    rates_config = ShopConfig.query.filter_by(config_key="rate_card").first()
+    if rates_config and rates_config.config_val:
+        price_rates = rates_config.config_val.get("PRICE_RATES", {"bw": 2.0, "color": 5.0})
+        paper_multipliers = rates_config.config_val.get("PAPER_MULTIPLIERS", {"A4": 1.0, "A3": 1.25, "Letter": 1.1})
+    else:
+        price_rates = {"bw": 2.0, "color": 5.0}
+        paper_multipliers = {"A4": 1.0, "A3": 1.25, "Letter": 1.1}
+
+    rate = price_rates.get(print_mode, price_rates.get('bw', 2.0))
+    multiplier = paper_multipliers.get(paper_size, 1.0)
     total = printed_pages * copies * rate * multiplier
     return rate, multiplier, round(total, 2)
 
@@ -149,8 +156,10 @@ def create_order(current_user):
     paper_size = request.form.get('paper_size', '').strip()
     if paper_size == '':
         paper_size = None
-    elif paper_size not in PAPER_MULTIPLIERS:
-        return jsonify({"error": "Invalid paper size selection."}), 400
+
+    payment_method = request.form.get('payment_method', 'cash').lower()
+    if payment_method not in {'cash', 'online'}:
+        return jsonify({"error": "Payment method must be 'cash' or 'online'."}), 400
 
     page_range_type = request.form.get('range_type', 'full').lower()
     page_range_value = request.form.get('page_range', '').strip()
@@ -205,6 +214,8 @@ def create_order(current_user):
         unit_rate=rate,
         multiplier=multiplier,
         total_price=total_price,
+        payment_method=payment_method,
+        payment_status="pending" if payment_method == "online" else "pending_cash",
         status="Submitted",
         created_at=datetime.now(timezone.utc),
     )
@@ -216,7 +227,7 @@ def create_order(current_user):
     AuditLog.log(
         action="ORDER_CREATED",
         user=current_user,
-        details=f"Created order {order.id[:8]} for '{filename}' (₹{total_price})",
+        details=f"Created order {str(order.id)[:8]} for '{filename}' (₹{total_price})",
         ip_address=ip_addr,
     )
 
@@ -245,6 +256,39 @@ def list_orders(current_user):
     orders = query.order_by(PrintOrder.created_at.desc()).all()
     return jsonify({"orders": [o.to_dict() for o in orders]}), 200
 
+
+# ── GET /api/orders/<order_id>/download ──────────────────────────────────────
+@orders_bp.route('/<order_id>/download', methods=['GET'])
+@token_required
+def download_order_file(current_user, order_id):
+    """Securely download an order's file."""
+    order = db.session.get(PrintOrder, order_id)
+    if not order:
+        return jsonify({"error": "Order not found."}), 404
+        
+    # Check authorization: Only the customer who owns it, or an admin/super_admin
+    if current_user.role == 'customer' and order.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized to download this file."}), 403
+
+    if not os.path.exists(order.file_path):
+        return jsonify({"error": "File not found on server."}), 404
+
+    # Audit log the download for admin
+    if current_user.role in {'admin', 'super_admin'}:
+        ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+        AuditLog.log(
+            action="FILE_DOWNLOADED",
+            user=current_user,
+            details=f"Downloaded file for order {order.id[:8]}",
+            ip_address=ip_addr,
+        )
+
+    return send_file(
+        order.file_path, 
+        as_attachment=True, 
+        download_name=order.file_name,
+        mimetype=order.mime_type
+    )
 
 # ── PATCH /api/orders/<order_id>/status ──────────────────────────────────────
 @orders_bp.route('/<order_id>/status', methods=['PATCH'])

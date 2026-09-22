@@ -114,6 +114,11 @@
           <i class="bi bi-printer"></i> Print Queue &amp; Orders
         </a>
       </li>
+      <li>
+        <a href="#" id="navSettings" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="bi bi-gear"></i> Rate Card Settings
+        </a>
+      </li>
     </ul>
 
     <div class="sidebar-footer">
@@ -215,7 +220,7 @@
               <th>Customer</th>
               <th>Document</th>
               <th>Mode / Specs</th>
-              <th>Price</th>
+              <th>Price & Payment</th>
               <th>Status</th>
               <th>Submitted</th>
               <th class="text-end">Actions</th>
@@ -233,6 +238,41 @@
     </div>
 
   </main><!-- /.main-content -->
+
+  <!-- ── Settings / Rate Card Modal ─────────────────────────────────────────── -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-gear me-1"></i> Shop Rate Card</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">Update your shop's printing rates and paper size multipliers.</p>
+          <div class="mb-3">
+            <label class="form-label small text-muted">B&W Rate (per page)</label>
+            <input type="number" id="rateBw" class="minimal-input w-100" step="0.5" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">Color Rate (per page)</label>
+            <input type="number" id="rateColor" class="minimal-input w-100" step="0.5" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">A3 Multiplier (e.g. 1.25)</label>
+            <input type="number" id="rateA3" class="minimal-input w-100" step="0.05" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">Letter Multiplier (e.g. 1.1)</label>
+            <input type="number" id="rateLetter" class="minimal-input w-100" step="0.05" />
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveRates">Save Rates</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Rejection Reason Modal ─────────────────────────────────────────── -->
   <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
@@ -285,6 +325,7 @@
     let cachedOrders = [];
     let rejectModalInstance = null;
     let detailsModalInstance = null;
+    let settingsModalInstance = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Role Guard: strictly 'admin' (or legacy 'owner')
@@ -302,6 +343,11 @@
 
       rejectModalInstance = new bootstrap.Modal(document.getElementById('rejectModal'));
       detailsModalInstance = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+      settingsModalInstance = new bootstrap.Modal(document.getElementById('settingsModal'));
+
+      // Rates management
+      document.getElementById('navSettings').addEventListener('click', loadRatesToModal);
+      document.getElementById('btnSaveRates').addEventListener('click', saveRates);
 
       // Filter pills
       document.querySelectorAll('.filter-pill').forEach(btn => {
@@ -332,6 +378,43 @@
         document.getElementById('statPrinting').textContent = s.printing;
         document.getElementById('statCompleted').textContent = s.completed;
         document.getElementById('statRevenue').textContent = `₹${s.total_revenue.toFixed(2)}`;
+      }
+    }
+
+    async function loadRatesToModal() {
+      const { ok, data } = await apiCall('/shop/rates', 'GET');
+      if (ok && data) {
+        document.getElementById('rateBw').value = data.PRICE_RATES?.bw || 2.0;
+        document.getElementById('rateColor').value = data.PRICE_RATES?.color || 5.0;
+        document.getElementById('rateA3').value = data.PAPER_MULTIPLIERS?.A3 || 1.25;
+        document.getElementById('rateLetter').value = data.PAPER_MULTIPLIERS?.Letter || 1.1;
+      }
+    }
+
+    async function saveRates() {
+      const bw = parseFloat(document.getElementById('rateBw').value);
+      const color = parseFloat(document.getElementById('rateColor').value);
+      const a3 = parseFloat(document.getElementById('rateA3').value);
+      const letter = parseFloat(document.getElementById('rateLetter').value);
+
+      const payload = {
+        PRICE_RATES: { bw, color },
+        PAPER_MULTIPLIERS: { A4: 1.0, A3: a3, Letter: letter }
+      };
+
+      const btn = document.getElementById('btnSaveRates');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const { ok, data } = await apiCall('/shop/rates', 'PUT', payload);
+      btn.disabled = false;
+      btn.textContent = 'Save Rates';
+
+      if (ok) {
+        settingsModalInstance.hide();
+        showToast('Shop rates updated successfully.');
+      } else {
+        showToast(data?.error || 'Failed to update rates.', 'error');
       }
     }
 
@@ -390,6 +473,13 @@
         } else {
           actionButtons = `<button class="btn btn-outline-secondary btn-action-sm" onclick="viewOrderDetails('${o.id}')"><i class="bi bi-eye"></i> Details</button>`;
         }
+        
+        // Add Download button to all orders - using authenticated fetch download helper
+        actionButtons += `
+          <button class="btn btn-outline-info btn-action-sm ms-1" onclick="downloadOrderFile('${o.id}', '${escapeHtml(o.file_name)}')">
+            <i class="bi bi-download"></i> File
+          </button>
+        `;
 
         return `
           <tr>
@@ -412,7 +502,10 @@
               ${modeBadge} <small class="text-muted">· ${o.paper_size || 'A4'}</small>
               <div><small class="text-muted">Pages: ${escapeHtml(o.page_range)}</small></div>
             </td>
-            <td><strong class="text-success">₹${o.total_price.toFixed(2)}</strong></td>
+            <td>
+              <strong class="text-success">₹${o.total_price.toFixed(2)}</strong>
+              <div><small class="text-muted">${(o.payment_method || 'cash').toUpperCase()} (${o.payment_status || 'pending'})</small></div>
+            </td>
             <td>
               <span class="order-status-badge status-${o.status}">
                 ● ${o.status}
@@ -436,6 +529,33 @@
         loadStats();
       } else {
         showToast(data.error || 'Failed to update order status.', 'error');
+      }
+    }
+
+    async function downloadOrderFile(orderId, fileName) {
+      try {
+        const response = await fetch(`${CONFIG.API_BASE}/orders/${orderId}/download`, {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          showToast(data.error || 'Failed to download file.', 'error');
+          return;
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (err) {
+        showToast('Network error while downloading file.', 'error');
       }
     }
 
@@ -513,8 +633,9 @@
             <div>${escapeHtml(order.page_range)} (${order.printed_pages} pages)</div>
           </div>
           <div class="col-6">
-            <label class="text-muted small">Total Cost</label>
+            <label class="text-muted small">Total Cost & Payment</label>
             <div class="fw-bold text-success fs-5">₹${order.total_price.toFixed(2)}</div>
+            <div><small class="text-muted">${(order.payment_method || 'cash').toUpperCase()} (${order.payment_status || 'pending'})</small></div>
           </div>
           ${order.rejection_reason ? `
             <div class="col-12">
