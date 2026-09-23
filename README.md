@@ -19,9 +19,9 @@
 
 ## Backend Implementation Status
 - **`routes/`**:
-  - - [x] `routes/orders.py` — File upload handling, pricing engine, queue management, secure downloads
-  - - [ ] `routes/super_admin.py` — System-wide analytics and user management
-  - - [x] `routes/shop.py` — Rate card management
+  - - `routes/orders.py` — File upload handling, pricing engine, queue management, secure downloads
+  - - `routes/super_admin.py` — System-wide analytics and user management
+  - - `routes/shop.py` — Rate card management
 - **`models/`**:
   - `user.py` — Authentication and RBAC
   - `print_order.py` — Core transaction and file metadata

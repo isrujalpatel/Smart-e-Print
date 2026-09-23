@@ -17,20 +17,20 @@ The **Smart E-Printing Software** is a web-based application designed to digitiz
 ## 2. System Overview & Functionality
 
 ### Customer (User) Features
-- [x] **Secure Authentication:** Registration and Google OAuth (mocked) integration.
-- [x] **Document Upload:** Support for PDF and common image formats.
-- [x] **Print Configuration:** Select color/B&W, copies, and specific page ranges.
-- [x] **Smart Pricing Engine:** Real-time price estimation based on page count and settings.
-- [x] **Live Order Tracking:** Status updates (Submitted, Printing, Completed, Rejected).
-- [x] **Payment Selection:** Choose between Cash on Pickup or Online.
+- **Secure Authentication:** Registration and Google OAuth (mocked) integration.
+- **Document Upload:** Support for PDF and common image formats.
+- **Print Configuration:** Select color/B&W, copies, and specific page ranges.
+-**Smart Pricing Engine:** Real-time price estimation based on page count and settings.
+- **Live Order Tracking:** Status updates (Submitted, Printing, Completed, Rejected).
+- **Payment Selection:** Choose between Cash on Pickup or Online.
 
 ### Shop Owner (Admin) Features
-- [x] **Role-Based Access Control:** Secure routes for shop management.
-- [x] **Live Print Queue:** Real-time dashboard to manage incoming orders.
-- [x] **Order Fulfillment:** Approve, Reject (with reason), and mark jobs as Completed.
-- [x] **File Access:** Secure preview/download of customer documents.
-- [x] **Rate Card Management:** Dynamically adjust pricing for color, B&W, and paper sizes.
-- [x] **Business Analytics:** Basic stats on revenue, pending orders, and total volume.d daily and monthly revenue dashboards and print volume metrics.
+- **Role-Based Access Control:** Secure routes for shop management.
+- **Live Print Queue:** Real-time dashboard to manage incoming orders.
+- **Order Fulfillment:** Approve, Reject (with reason), and mark jobs as Completed.
+- **File Access:** Secure preview/download of customer documents.
+- **Rate Card Management:** Dynamically adjust pricing for color, B&W, and paper sizes.
+- **Business Analytics:** Basic stats on revenue, pending orders, and total volume.d daily and monthly revenue dashboards and print volume metrics.
 
 ---
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,408 +8,682 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
   <style>
-    .order-status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 600;
+    /* ── Base ────────────────────────────────────────── */
+    :root {
+      --bg-body: #f8f9fb;
+      --bg-card: #ffffff;
+      --bg-input: #f1f3f5;
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a68;
+      --text-muted: #8b8ba3;
+      --hairline: #e2e5ea;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --radius: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+      --shadow: 0 4px 12px rgba(0,0,0,.06);
     }
-    .status-Submitted { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
-    .status-Accepted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .status-Printing { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
-    .status-Completed { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-    .status-Rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-    .table-dark-custom {
-      width: 100%;
-      color: var(--text-color);
-      border-collapse: separate;
-      border-spacing: 0 8px;
+    [data-theme="dark"] {
+      --bg-body: #0f1117;
+      --bg-card: #1a1b26;
+      --bg-input: #24253a;
+      --text-primary: #e8e8ed;
+      --text-secondary: #b4b4c8;
+      --text-muted: #6b6b85;
+      --hairline: #2e2f45;
+      --accent: #60a5fa;
+      --accent-soft: rgba(96,165,250,.15);
+      --danger: #f87171;
+      --success: #4ade80;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.2);
+      --shadow: 0 4px 12px rgba(0,0,0,.3);
     }
-    .table-dark-custom th {
-      color: var(--muted);
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 10px 14px;
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      transition: background .3s, color .3s;
+      margin: 0;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* ── Layout ──────────────────────────────────────── */
+    .page-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* ── Top Nav ─────────────────────────────────────── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 10px 0;
+      flex-wrap: wrap;
+    }
+
+    /* Language Switcher */
+    .lang-switcher {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .lang-btn {
+      background: transparent;
       border: none;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .2s;
     }
-    .table-dark-custom td {
-      background: rgba(255, 255, 255, 0.03);
-      padding: 12px 14px;
-      font-size: 0.88rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      vertical-align: middle;
+    .lang-btn.active {
+      background: var(--accent);
+      color: #fff;
     }
-    .table-dark-custom tr td:first-child {
-      border-left: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px 0 0 12px;
+
+    /* ── Theme Toggle — pill slider ─────────────────── */
+    .theme-switch {
+      position: relative;
+      width: 52px; height: 28px;
+      background: var(--bg-input);
+      border-radius: 99px;
+      border: 1px solid var(--hairline);
+      cursor: pointer;
+      transition: background .3s;
+      flex-shrink: 0;
     }
-    .table-dark-custom tr td:last-child {
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 0 12px 12px 0;
+    .theme-switch .knob {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+      box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    }
+    .theme-switch .knob i { font-size: .7rem; color: #fff; }
+    [data-theme="dark"] .theme-switch .knob { transform: translateX(24px); }
+
+    /* Profile */
+    .profile-dropdown { position: relative; }
+    .profile-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--hairline);
+      padding: 5px 10px 5px 5px;
+      border-radius: 99px;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: background .2s;
+    }
+    .profile-btn:hover { background: var(--bg-card); }
+    .profile-pic {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, #06B6D4, #10B981);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: .75rem;
+    }
+    .dropdown-menu-custom {
+      display: none; position: absolute; top: 110%; right: 0;
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      border-radius: 10px; box-shadow: var(--shadow);
+      min-width: 190px; z-index: 1000; padding: 6px 0;
+    }
+    .dropdown-menu-custom.show { display: block; }
+    .dropdown-item-custom {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; color: var(--text-primary);
+      text-decoration: none; font-size: .85rem;
+      transition: background .15s; cursor: pointer;
+    }
+    .dropdown-item-custom:hover { background: var(--bg-input); }
+    .dropdown-item-custom.text-danger { color: var(--danger) !important; }
+    .dropdown-item-custom.text-danger:hover { background: rgba(239,68,68,.08); }
+
+    /* ── Section Title Row ───────────────────────────── */
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    }
+    .section-header h4 { margin: 0; font-size: 1.15rem; font-weight: 700; }
+    .btn-modern {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-card); color: var(--text-primary);
+      border: 1px solid var(--hairline); padding: 7px 14px;
+      border-radius: 8px; font-weight: 600; font-size: .85rem;
+      cursor: pointer; transition: all .2s; box-shadow: var(--shadow-sm);
+    }
+    .btn-modern:hover { background: var(--bg-input); transform: translateY(-1px); }
+    .btn-modern i { color: var(--accent); }
+
+    /* ── Info Section ────────────────────────────────── */
+    .info-section {
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+      font-size: .85rem; color: var(--text-secondary);
+    }
+    .price-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: .8rem; }
+    .price-table th, .price-table td { border: 1px solid var(--hairline); padding: 7px 10px; text-align: left; }
+    .price-table th { background: var(--bg-input); color: var(--text-muted); font-weight: 600; }
+
+    /* ── Upload Zone ─────────────────────────────────── */
+    .upload-zone {
+      background: var(--bg-card); border: 2px dashed var(--hairline);
+      border-radius: var(--radius); padding: 32px 16px;
+      text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 20px;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .upload-zone i { font-size: 2rem; color: var(--accent); }
+    .upload-zone .uz-title { font-weight: 700; font-size: .95rem; margin: 8px 0 4px; color: var(--text-primary); }
+    .upload-zone .uz-sub { font-size: .78rem; color: var(--text-muted); }
+
+    /* ── File Config Box ─────────────────────────────── */
+    .file-config-container { display: flex; flex-direction: column; gap: 14px; }
+    .file-config-box {
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .file-config-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--hairline);
+    }
+    .file-config-header h6 { margin: 0; font-size: .9rem; color: var(--accent); }
+    .remove-btn {
+      background: none; border: none; color: var(--danger);
+      font-size: .8rem; cursor: pointer; font-weight: 600;
+    }
+
+    /* Settings Row — horizontal */
+    .file-settings-row {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px;
+    }
+    .setting-card {
+      flex: 1; min-width: 180px;
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg-input); padding: 10px 12px;
+      border-radius: 8px; border: 1px solid var(--hairline);
+    }
+    .setting-card .s-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--bg-card); display: flex; align-items: center;
+      justify-content: center; font-size: 1rem; color: var(--text-primary);
+      flex-shrink: 0;
+    }
+    .setting-card .s-info { flex: 1; min-width: 0; }
+    .setting-card .s-info .s-label { font-size: .8rem; font-weight: 700; color: var(--text-primary); }
+    .setting-card .s-info .s-desc { font-size: .65rem; color: var(--text-muted); }
+    .setting-card .s-control { margin-left: auto; flex-shrink: 0; }
+
+    /* Pill toggles */
+    .pill-group {
+      display: flex; background: var(--bg-body); border-radius: 6px; padding: 3px;
+      border: 1px solid var(--hairline);
+    }
+    .pill {
+      padding: 4px 10px; font-size: .75rem; font-weight: 600;
+      cursor: pointer; border-radius: 4px; color: var(--text-muted);
+      transition: all .15s; white-space: nowrap;
+    }
+    .pill.active { background: var(--accent); color: #fff; }
+
+    /* Stepper */
+    .stepper { display: flex; align-items: center; gap: 6px; }
+    .stepper button {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--hairline); background: var(--bg-card);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-primary); font-size: .8rem;
+    }
+    .stepper span { min-width: 22px; text-align: center; font-weight: 700; font-size: .85rem; }
+
+    /* Select */
+    .mini-select {
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      color: var(--text-primary); padding: 4px 8px; border-radius: 6px;
+      font-size: .8rem; font-weight: 600; outline: none; cursor: pointer;
+    }
+
+    /* ── Checkout Area ───────────────────────────────── */
+    .checkout-area {
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      border-radius: var(--radius); padding: 18px; margin-top: 20px;
+    }
+    .checkout-area h5 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; }
+
+    .checkout-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-input); padding: 12px 14px;
+      border-radius: 8px; border: 1px solid var(--hairline);
+      margin-bottom: 10px;
+    }
+    .checkout-row .cr-label {
+      font-size: .85rem; font-weight: 700; min-width: 110px;
+      color: var(--text-primary);
+    }
+    .checkout-row .cr-note {
+      font-size: .75rem; color: var(--text-muted); margin-left: 10px;
+    }
+
+    /* Schedule box */
+    .schedule-box {
+      background: var(--bg-input); border: 1px solid var(--hairline);
+      border-radius: 8px; padding: 12px; margin-bottom: 10px;
+      display: none;
+    }
+    .schedule-box input {
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      color: var(--text-primary); padding: 6px 10px; border-radius: 6px;
+      font-size: .85rem; outline: none; width: 100%;
+    }
+
+    /* Summary */
+    .summary-section { margin-top: 16px; }
+    .summary-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      font-size: .88rem;
+    }
+    .summary-row .label { color: var(--text-muted); }
+    .summary-row .value { font-weight: 700; }
+    .summary-row.total { font-size: 1.15rem; padding-top: 12px; margin-top: 6px; border-top: 1px solid var(--hairline); }
+    .summary-row.total .value { color: var(--accent); }
+
+    .btn-submit {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: var(--accent); color: #fff;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      margin-top: 16px; transition: opacity .2s;
+    }
+    .btn-submit:hover { opacity: .9; }
+
+    /* ── Dashboard View ──────────────────────────────── */
+    #dashboardView { display: none; }
+    .table-wrap {
+      background: var(--bg-card); border: 1px solid var(--hairline);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .cust-table { width: 100%; border-collapse: collapse; }
+    .cust-table th {
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+      color: var(--text-muted); padding: 10px 12px; text-align: left;
+      background: var(--bg-input); border-bottom: 1px solid var(--hairline);
+    }
+    .cust-table td {
+      padding: 10px 12px; font-size: .84rem; border-bottom: 1px solid var(--hairline);
+      color: var(--text-primary); vertical-align: middle;
+    }
+
+    /* Status badges */
+    .badge-status {
+      display: inline-block; padding: 3px 9px; border-radius: 99px;
+      font-size: .72rem; font-weight: 600;
+    }
+    .badge-Submitted { background: rgba(234,179,8,.12); color: #eab308; }
+    .badge-Accepted  { background: rgba(59,130,246,.12); color: #3b82f6; }
+    .badge-Printing  { background: rgba(168,85,247,.12); color: #a855f7; }
+    .badge-Completed { background: rgba(34,197,94,.12); color: #22c55e; }
+    .badge-Rejected  { background: rgba(239,68,68,.12); color: #ef4444; }
+
+    /* ═══════════════════════════════════════════════════
+       MOBILE RESPONSIVE
+       ═══════════════════════════════════════════════════ */
+
+    /* Prevent any horizontal overflow globally */
+    html, body { overflow-x: hidden; max-width: 100vw; }
+
+    /* Toast — push below nav so it doesn't cover controls */
+    #toastContainer {
+      position: fixed; top: 60px; right: 12px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    /* ── ≤768px (Tablet + Phone) ─────────────────────── */
+    @media (max-width: 768px) {
+      .page-wrap { padding: 12px 10px; }
+
+      /* Hide ambient orbs — they cause overflow */
+      .bg-animated, .orb { display: none !important; }
+
+      /* Nav: stack into its own row, centered */
+      .top-nav {
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 0;
+        margin-bottom: 12px;
+      }
+
+      /* Section headers: full width stacked */
+      .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .section-header h4 {
+        font-size: 1.05rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      .btn-modern { justify-content: center; width: 100%; }
+
+      /* Info */
+      .info-section { padding: 12px; font-size: .82rem; }
+      .info-section h6 { font-size: .82rem !important; }
+      .price-table { font-size: .72rem; }
+      .price-table th, .price-table td { padding: 5px 6px; }
+
+      /* Upload zone */
+      .upload-zone { padding: 24px 12px; }
+      .upload-zone i { font-size: 1.6rem; }
+      .upload-zone .uz-title { font-size: .88rem; }
+
+      /* File configs — vertical stack (like SS3 which is perfect) */
+      .file-config-box { padding: 12px; }
+      .file-config-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .file-settings-row { flex-direction: column; overflow-x: visible; gap: 8px; }
+      .setting-card { min-width: unset; width: 100%; flex: unset; }
+
+      /* Checkout */
+      .checkout-area { padding: 14px; }
+      .checkout-area h5 { font-size: .95rem; }
+      .checkout-row {
+        flex-direction: column; align-items: stretch;
+        gap: 8px; padding: 10px 12px;
+      }
+      .checkout-row .cr-label { min-width: unset; font-size: .82rem; }
+      .checkout-row .cr-note { margin-left: 0; font-size: .72rem; }
+      .pill-group { width: 100%; }
+      .pill { flex: 1; text-align: center; padding: 6px 8px; }
+
+      .schedule-box { padding: 10px; }
+      .summary-row { font-size: .82rem; }
+      .summary-row.total { font-size: 1rem; }
+      .btn-submit { padding: 12px; font-size: .95rem; }
+
+      /* Dashboard: title wraps, table scrolls */
+      .table-wrap { border-radius: 8px; }
+      .cust-table th, .cust-table td { padding: 8px 8px; white-space: nowrap; }
+      .cust-table th { font-size: .68rem; }
+      .cust-table td { font-size: .78rem; }
+
+      /* Profile dropdown: don't let it get clipped */
+      .dropdown-menu-custom {
+        position: fixed;
+        top: auto; right: 10px;
+        max-height: 70vh; overflow-y: auto;
+      }
+    }
+
+    /* ── ≤480px (Phones) ─────────────────────────────── */
+    @media (max-width: 480px) {
+      .page-wrap { padding: 8px 8px; }
+
+      /* Nav tighter */
+      .top-nav { gap: 6px; }
+      .lang-btn { padding: 4px 8px; font-size: .72rem; }
+      .theme-switch { width: 44px; height: 24px; }
+      .theme-switch .knob { width: 16px; height: 16px; top: 3px; left: 3px; }
+      .theme-switch .knob i { font-size: .6rem; }
+      [data-theme="dark"] .theme-switch .knob { transform: translateX(20px); }
+
+      /* Profile: hide username, avatar only */
+      #navUserName { display: none; }
+      .profile-btn { padding: 4px 6px 4px 4px; gap: 4px; }
+      .profile-pic { width: 26px; height: 26px; font-size: .65rem; }
+      .profile-btn .bi-chevron-down { display: none; }
+
+      .section-header h4 { font-size: .95rem; }
+
+      /* Info */
+      .info-section { padding: 10px; font-size: .78rem; }
+      .price-table { font-size: .68rem; }
+      .price-table th, .price-table td { padding: 4px 5px; }
+
+      /* Upload */
+      .upload-zone { padding: 20px 10px; margin-bottom: 14px; }
+      .upload-zone i { font-size: 1.4rem; }
+      .upload-zone .uz-title { font-size: .82rem; margin: 6px 0 2px; }
+      .upload-zone .uz-sub { font-size: .72rem; }
+
+      /* File configs */
+      .file-config-box { padding: 10px; }
+      .file-config-header h6 { font-size: .82rem; }
+      .setting-card { padding: 8px 10px; gap: 8px; }
+      .setting-card .s-icon { width: 28px; height: 28px; font-size: .85rem; }
+      .setting-card .s-info .s-label { font-size: .75rem; }
+      .setting-card .s-info .s-desc { font-size: .6rem; }
+      .pill { font-size: .7rem; padding: 4px 8px; }
+      .stepper button { width: 24px; height: 24px; font-size: .7rem; }
+      .stepper span { font-size: .78rem; min-width: 18px; }
+      .mini-select { font-size: .75rem; padding: 3px 6px; }
+
+      /* Checkout */
+      .checkout-area { padding: 10px; margin-top: 14px; }
+      .checkout-area h5 { font-size: .88rem; margin-bottom: 12px; }
+      .checkout-row { padding: 8px 10px; margin-bottom: 8px; }
+      .checkout-row .cr-label { font-size: .78rem; }
+      .summary-row { font-size: .78rem; padding: 4px 0; }
+      .summary-row.total { font-size: .95rem; }
+      .btn-submit { padding: 11px; font-size: .88rem; margin-top: 12px; border-radius: 8px; }
+
+      /* Dashboard */
+      .cust-table th { font-size: .64rem; padding: 6px 6px; }
+      .cust-table td { font-size: .72rem; padding: 6px 6px; }
+      .badge-status { font-size: .65rem; padding: 2px 7px; }
+
+      /* Toast smaller on phone */
+      #toastContainer { right: 8px; left: 8px; top: 50px; }
+    }
+
+    /* ── ≤360px (Tiny phones: SE, etc.) ──────────────── */
+    @media (max-width: 360px) {
+      .page-wrap { padding: 6px 6px; }
+      .top-nav { gap: 4px; }
+      .lang-btn { padding: 3px 6px; font-size: .68rem; }
+      .section-header h4 { font-size: .9rem; }
+      .info-section { font-size: .74rem; padding: 8px; }
+      .upload-zone { padding: 16px 8px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Ambient Background -->
-  <div class="bg-animated" style="opacity:.6;">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-  </div>
-
-  <!-- Toast Container -->
   <div id="toastContainer"></div>
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       SIDEBAR
-       ══════════════════════════════════════════════════════════════════════ -->
-  <aside class="sidebar" id="sidebar">
+  <div class="page-wrap">
 
-    <div class="sidebar-header">
-      <a href="index.html" class="navbar-brand-custom" style="font-size:1.1rem;">
-        <div class="brand-name-wrap">
-          <span class="brand-name-main gradient-text" style="font-size:1rem;">Smart e-Print</span>
-          <span class="brand-name-sub">Customer Portal</span>
+    <!-- ═══ TOP NAV ═══ -->
+    <nav class="top-nav">
+      <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="hi">हि</button>
+        <button class="lang-btn" data-lang="gu">ગુ</button>
+      </div>
+
+      <div class="theme-switch" id="themeToggleBtn" title="Toggle Theme">
+        <div class="knob"><i class="bi bi-moon-fill" id="themeIcon"></i></div>
+      </div>
+
+      <div class="profile-dropdown">
+        <div class="profile-btn" id="profileDropdownBtn">
+          <div class="profile-pic" id="navAvatar">C</div>
+          <span id="navUserName" style="font-weight:600;font-size:.85rem;">Customer</span>
+          <i class="bi bi-chevron-down" style="font-size:.6rem;color:var(--text-muted);"></i>
         </div>
-      </a>
-    </div>
-
-    <ul class="sidebar-nav">
-      <li>
-        <a href="customer-dashboard.html" class="active" id="navDashboard">
-          <i class="bi bi-grid-1x2"></i> Dashboard &amp; Orders
-        </a>
-      </li>
-      <li>
-        <a href="upload-print.html" id="navUploadPrint">
-          <i class="bi bi-file-earmark-arrow-up"></i> Upload &amp; Print
-        </a>
-      </li>
-    </ul>
-
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="user-avatar" id="sidebarAvatar" style="background:linear-gradient(135deg,#06B6D4,#10B981);">?</div>
-        <div class="user-info">
-          <div class="user-name" id="sidebarUserName">Loading…</div>
-          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:#67E8F9;">Customer</div>
+        <div class="dropdown-menu-custom" id="profileMenu">
+          <a href="#" class="dropdown-item-custom"><i class="bi bi-image"></i> <span data-i18n="edit_picture">Edit Picture</span></a>
+          <a href="#" class="dropdown-item-custom"><i class="bi bi-person"></i> <span data-i18n="edit_name">Edit Name</span></a>
+          <a href="#" class="dropdown-item-custom"><i class="bi bi-key"></i> <span data-i18n="reset_password">Reset Password</span></a>
+          <hr style="margin:4px 0;border-color:var(--hairline);">
+          <a href="#" class="dropdown-item-custom text-danger" id="signOutBtn"><i class="bi bi-box-arrow-right"></i> <span data-i18n="sign_out">Sign Out</span></a>
         </div>
       </div>
-      <a href="#" class="btn-outline-glass w-100" id="logoutBtn" style="font-size:.83rem;padding:9px 14px;">
-        <i class="bi bi-box-arrow-left"></i> Sign Out
-      </a>
-    </div>
+    </nav>
 
-  </aside>
+    <!-- ═══ UPLOAD VIEW ═══ -->
+    <div id="uploadView">
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       MAIN CONTENT
-       ══════════════════════════════════════════════════════════════════════ -->
-  <main class="main-content">
-
-    <!-- Top Header -->
-    <div class="dash-header">
-      <div>
-        <h1 class="dash-title">
-          Hello, <span class="gradient-text" id="welcomeName">Customer</span>! 👋
-        </h1>
-        <p class="dash-subtitle">Here's your print activity overview &amp; order tracking</p>
-      </div>
-      <span class="role-badge customer" style="margin-top:6px;">
-        <i class="bi bi-person"></i> Customer
-      </span>
-    </div>
-
-    <!-- Stats -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">Total Orders</div>
-          <div class="stat-value gradient-text" id="custStatTotal">0</div>
-          <div class="stat-change neutral">Submitted by you</div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">Completed</div>
-          <div class="stat-value" id="custStatCompleted" style="color:var(--accent);">0</div>
-          <div class="stat-change neutral">Ready for pickup</div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">In Progress / Pending</div>
-          <div class="stat-value" id="custStatPending" style="color:var(--warning);">0</div>
-          <div class="stat-change neutral">Processing</div>
-        </div>
-      </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">Total Amount</div>
-          <div class="stat-value" id="custStatSpent" style="color:#2563eb;">₹0.00</div>
-          <div class="stat-change neutral">Print spending</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Upload Section -->
-    <div class="glass-card upload-card p-4 mt-4 mb-4">
-      <div class="upload-card-header mb-3">
-        <div>
-          <h2 class="section-title">Quick Upload &amp; Print</h2>
-          <p class="section-desc">Drop your files here to configure and print.</p>
-        </div>
-      </div>
-      <label for="dashFileInput" class="upload-dropzone" id="dashUploadDropzone">
-        <div>
-          <i class="bi bi-cloud-arrow-up upload-icon"></i>
-          <p class="upload-title">Choose files to upload</p>
-          <p class="upload-subtitle">Click or drag to select PDFs or images</p>
-        </div>
-        <span class="upload-note">Accepted formats: .pdf, .png, .jpg, .jpeg</span>
-      </label>
-      <input type="file" id="dashFileInput" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none;" />
-    </div>
-
-    <!-- ── Live Order History & Tracking ───────────────────────────────── -->
-    <div class="glass-card p-4 mb-4">
-      <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-          <h2 class="section-title mb-1">Your Print Orders &amp; Tracking</h2>
-          <p class="section-desc mb-0">Track real-time status of your documents</p>
-        </div>
-        <button class="btn-outline-glass btn-sm" onclick="loadCustomerOrders()">
-          <i class="bi bi-arrow-clockwise"></i> Refresh
+      <div class="section-header">
+        <h4 data-i18n="new_print_order">New Print Order</h4>
+        <button class="btn-modern" onclick="switchView('dashboard')">
+          <i class="bi bi-layout-text-window-reverse"></i>
+          <span data-i18n="go_to_dashboard">Go to Dashboard</span>
         </button>
       </div>
 
-      <div class="table-responsive">
-        <table class="table-dark-custom">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Document</th>
-              <th>Mode / Specs</th>
-              <th>Pages &amp; Copies</th>
-              <th>Total Cost</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody id="custOrdersTableBody">
-            <tr>
-              <td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-arrow-repeat spin"></i> Loading your orders…</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </main><!-- /.main-content -->
-
-  <!-- Configuration Modal -->
-  <div class="modal fade" id="configModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content glass-card">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title section-title">Print Configuration</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <!-- Info -->
+      <div class="info-section">
+        <p style="margin:0;"><strong data-i18n="privacy_label">Privacy:</strong> <span data-i18n="privacy_text">Your files are used only to print. After printing they are deleted automatically. We do not keep a copy for admin viewing — only a print receipt (pages / amount) stays for the shop bill.</span></p>
+        <h6 style="margin:14px 0 0; font-weight:700; font-size:.88rem;" data-i18n="price_list_title">Price list (₹ per page) · live from shop (one / both sides)</h6>
+        <div style="overflow-x:auto;">
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th data-i18n="th_paper">Paper</th>
+                <th data-i18n="th_bw_one">B&W one</th>
+                <th data-i18n="th_bw_both">B&W both</th>
+                <th data-i18n="th_color_one">Colour one</th>
+                <th data-i18n="th_color_both">Colour both</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>A4</td><td>₹2.00</td><td>₹2.00</td><td>₹5.00</td><td>₹5.00</td></tr>
+              <tr><td>A3</td><td>₹10.00</td><td>₹10.00</td><td>₹10.00</td><td>₹10.00</td></tr>
+            </tbody>
+          </table>
         </div>
-        <div class="modal-body">
-          <div class="row g-4">
-            <!-- Left col: Files & Form -->
-            <div class="col-lg-7">
-              <h6 class="role-section-label mb-2">Uploaded Files</h6>
-              <div id="dashFileListContainer" class="file-list-container mb-4">
-                <!-- File list items go here -->
-              </div>
-              <button type="button" class="add-more-files-btn w-100 mb-4" id="dashAddMoreFilesBtn" style="display:none;" onclick="document.getElementById('dashFileInput').click()">
-                <i class="bi bi-plus-lg"></i> Add another file
-              </button>
+      </div>
 
-              <div id="dashConfigPanelEmpty" class="text-center py-4" style="color: var(--muted); display:none;">
-                <i class="bi bi-file-earmark-plus" style="font-size: 2.5rem; opacity: 0.5;"></i>
-                <p class="mt-2 mb-0">Select an uploaded file to configure its settings.</p>
-              </div>
+      <!-- Upload -->
+      <label for="mainFileInput" class="upload-zone" id="mainUploadDropzone">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <div class="uz-title" data-i18n="select_files">Select Files</div>
+        <div class="uz-sub" data-i18n="upload_hint">PDF, JPG, PNG · Max 25 MB each</div>
+      </label>
+      <input type="file" id="mainFileInput" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple style="display:none;" />
 
-              <div id="dashConfigPanelForm">
-                <div class="config-list">
-                  
-                  <!-- Print Mode -->
-                  <div class="config-row">
-                    <div class="config-row-info">
-                      <div class="config-row-icon"><i class="bi bi-palette2"></i></div>
-                      <div class="config-row-text">
-                        <div class="title">Print Mode</div>
-                        <div class="desc">Color or monochrome</div>
-                      </div>
-                    </div>
-                    <div class="config-row-control">
-                      <div class="minimal-toggle">
-                        <label>
-                          <input type="radio" name="dashPrintMode" value="bw" checked>
-                          <span>B&W</span>
-                        </label>
-                        <label>
-                          <input type="radio" name="dashPrintMode" value="color">
-                          <span>Color</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
+      <!-- File Configs -->
+      <div id="fileConfigContainer" class="file-config-container"></div>
 
-                  <!-- Copies -->
-                  <div class="config-row">
-                    <div class="config-row-info">
-                      <div class="config-row-icon"><i class="bi bi-files"></i></div>
-                      <div class="config-row-text">
-                        <div class="title">Copies</div>
-                        <div class="desc">Number of prints</div>
-                      </div>
-                    </div>
-                    <div class="config-row-control">
-                      <div class="stepper-control">
-                        <button type="button" class="stepper-btn" onclick="document.getElementById('dashCopiesInput').stepDown(); document.getElementById('dashCopiesInput').dispatchEvent(new Event('input'))"><i class="bi bi-dash"></i></button>
-                        <input type="number" id="dashCopiesInput" class="stepper-input" min="1" value="1" />
-                        <button type="button" class="stepper-btn" onclick="document.getElementById('dashCopiesInput').stepUp(); document.getElementById('dashCopiesInput').dispatchEvent(new Event('input'))"><i class="bi bi-plus"></i></button>
-                      </div>
-                    </div>
-                  </div>
+      <!-- Checkout -->
+      <div class="checkout-area" id="checkoutArea" style="display:none;">
+        <h5 data-i18n="order_details_payment">Order Details & Payment</h5>
 
-                  <!-- Paper Size -->
-                  <div class="config-row">
-                    <div class="config-row-info">
-                      <div class="config-row-icon"><i class="bi bi-aspect-ratio"></i></div>
-                      <div class="config-row-text">
-                        <div class="title">Paper Size</div>
-                        <div class="desc">Select document size</div>
-                      </div>
-                    </div>
-                    <div class="config-row-control">
-                      <select id="dashPaperSizeSelect" class="minimal-select">
-                        <option value="A4">A4</option>
-                        <option value="A3">A3</option>
-                        <option value="Letter">Letter</option>
-                      </select>
-                    </div>
-                  </div>
+        <!-- Order Type -->
+        <div class="checkout-row">
+          <span class="cr-label" data-i18n="order_type">Order Type</span>
+          <div class="pill-group">
+            <div class="pill active" onclick="setOrderType('now')" id="btnOrderNow" data-i18n="regular">Regular</div>
+            <div class="pill" onclick="setOrderType('schedule')" id="btnOrderSchedule" data-i18n="scheduled_pickup">Scheduled Pickup</div>
+          </div>
+        </div>
 
-                  <!-- Page Range -->
-                  <div class="config-row" style="flex-wrap: wrap; gap: 12px;">
-                    <div class="d-flex align-items-center justify-content-between w-100">
-                      <div class="config-row-info">
-                        <div class="config-row-icon"><i class="bi bi-layout-text-sidebar-reverse"></i></div>
-                        <div class="config-row-text">
-                          <div class="title">Page Range</div>
-                          <div class="desc">All pages or custom</div>
-                        </div>
-                      </div>
-                      <div class="config-row-control">
-                        <div class="minimal-toggle" id="dashRangeSwitch">
-                          <label data-range="full">
-                            <input type="radio" name="dashRangeModeToggle" value="full" checked>
-                            <span>Full</span>
-                          </label>
-                          <label data-range="custom">
-                            <input type="radio" name="dashRangeModeToggle" value="custom">
-                            <span>Custom</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="w-100" id="dashCustomRangeContainer" style="display: none; padding-left: 58px;">
-                      <input type="text" id="dashPageRangeInput" class="minimal-input w-100" placeholder="e.g. 1-3, 5, 8-10" />
-                    </div>
-                  </div>
-
-                  <!-- Payment Method -->
-                  <div class="config-row mt-3">
-                    <div class="config-row-info">
-                      <div class="config-row-icon"><i class="bi bi-credit-card"></i></div>
-                      <div class="config-row-text">
-                        <div class="title">Payment</div>
-                        <div class="desc">Cash or Online</div>
-                      </div>
-                    </div>
-                    <div class="config-row-control">
-                      <div class="minimal-toggle">
-                        <label>
-                          <input type="radio" name="dashPaymentMethod" value="cash" checked>
-                          <span>Cash</span>
-                        </label>
-                        <label>
-                          <input type="radio" name="dashPaymentMethod" value="online">
-                          <span>Online</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
+        <!-- Schedule Inputs -->
+        <div class="schedule-box" id="scheduleInputs">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;" data-i18n="date">Date</label>
+              <input type="date" id="scheduleDate" />
             </div>
-
-            <!-- Right col: Summary -->
-            <div class="col-lg-5">
-              <div class="upload-card p-4 h-100" style="background:var(--paper); border:none; border-radius:var(--radius);">
-                <h6 class="role-section-label mb-3">Pricing Preview</h6>
-                <div class="summary-row">
-                  <span>Document pages</span>
-                  <strong id="dashSummaryPageCount">0</strong>
-                </div>
-                <div class="summary-row">
-                  <span>Selected pages</span>
-                  <strong id="dashSummarySelectedPages">0</strong>
-                </div>
-                <div class="summary-row">
-                  <span>Copies</span>
-                  <strong id="dashSummaryCopies">1</strong>
-                </div>
-                <div class="summary-row">
-                  <span>Mode</span>
-                  <strong id="dashSummaryMode">B&amp;W</strong>
-                </div>
-                <div class="summary-row">
-                  <span>Paper size</span>
-                  <strong id="dashSummaryPaperSize">A4</strong>
-                </div>
-                <hr />
-                <div class="summary-row total-row">
-                  <span>File estimate</span>
-                  <strong id="dashSummaryTotal">₹0.00</strong>
-                </div>
-                <div class="summary-row total-row" style="color: var(--stamp); font-size: 1.1rem; margin-top: 10px;">
-                  <span>Grand Total</span>
-                  <strong id="dashGrandTotal">₹0.00</strong>
-                </div>
-              </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block;" data-i18n="time">Time</label>
+              <input type="time" id="scheduleTime" />
             </div>
           </div>
         </div>
-        <div class="modal-footer border-0 pt-0">
-          <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn-gradient" id="dashSubmitOrderBtn" disabled>Submit Order</button>
+
+        <!-- Payment Method -->
+        <div class="checkout-row">
+          <span class="cr-label" data-i18n="payment_method">Payment Method</span>
+          <div class="pill-group" id="paymentMethodGroup">
+            <div class="pill active" onclick="setPayment('cash')" id="btnPayCash" data-i18n="cash_at_shop">Cash at Shop</div>
+            <div class="pill" onclick="setPayment('online')" id="btnPayOnline" data-i18n="online_razorpay">Online (Razorpay)</div>
+          </div>
+          <span class="cr-note" id="paymentNote" data-i18n="cash_note">Cash available for immediate orders only.</span>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+          <div class="summary-row">
+            <span class="label" data-i18n="total_files">Total Files</span>
+            <span class="value" id="grandTotalFiles">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="label" data-i18n="total_pages">Total Pages (approx)</span>
+            <span class="value" id="grandTotalPages">0</span>
+          </div>
+          <div class="summary-row total">
+            <span class="label" data-i18n="estimated_total">Estimated Total</span>
+            <span class="value" id="grandTotalCost">₹0.00</span>
+          </div>
+        </div>
+
+        <button class="btn-submit" onclick="submitMainOrder()" data-i18n="submit_order">Submit Order</button>
+      </div>
+
+    </div><!-- /#uploadView -->
+
+    <!-- ═══ DASHBOARD VIEW ═══ -->
+    <div id="dashboardView">
+      <div class="section-header">
+        <div>
+          <h4 data-i18n="your_orders">Your Print Orders & Tracking</h4>
+          <p style="margin:0;font-size:.82rem;color:var(--text-muted);" data-i18n="track_status">Track real-time status of your documents</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-modern" onclick="loadCustomerOrders()"><i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span></button>
+          <button class="btn-submit" style="width:auto;margin:0;padding:8px 14px;font-size:.82rem;" onclick="switchView('upload')"><i class="bi bi-plus-lg"></i> <span data-i18n="new_order">New Order</span></button>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Scripts -->
+      <div class="table-wrap">
+        <div style="overflow-x:auto;">
+          <table class="cust-table">
+            <thead>
+              <tr>
+                <th data-i18n="th_document">Document</th>
+                <th data-i18n="th_cost">Total Cost</th>
+                <th data-i18n="th_payment">Payment</th>
+                <th data-i18n="th_status">Status</th>
+                <th data-i18n="th_schedule">Schedule</th>
+                <th data-i18n="th_action">Action</th>
+              </tr>
+            </thead>
+            <tbody id="custOrdersTableBody">
+              <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);" data-i18n="loading">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /#dashboardView -->
+
+  </div><!-- /.page-wrap -->
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>
   <script>
-    // Initialize — verifies JWT, checks role === 'customer', populates UI
     initDashboard('customer');
+    if (typeof switchView === 'function') switchView('upload');
   </script>
 </body>
 </html>

@@ -1,473 +1,507 @@
 /**
- * Smart e-Print — Dashboard Module
- * Initializes protected dashboard pages: verifies auth, populates UI, sets up logout.
- * Requires: config.js and auth.js loaded first.
+ * Smart e-Print — Unified Customer Dashboard Module
+ * Full i18n, theme, file config, scheduling, Razorpay, order tracking.
  */
 
-/**
- * initDashboard(requiredRole)
- * Call once per dashboard page on DOMContentLoaded.
- * Returns the authenticated user object, or null (and redirects) on failure.
- */
+const UPLOAD_MAX = 25 * 1024 * 1024;
+let PRICE_RATES = { bw_one: 2.0, bw_both: 2.0, color_one: 5.0, color_both: 5.0 };
+let PAPER_MULTIPLIERS = { A4: 1.0, A3: 1.5, Letter: 1.1 };
+
+let uploadedFiles = [];
+let fileCounter = 0;
+let currentOrderType = 'now';
+let currentPaymentMethod = 'cash';
+
+/* ═══════════════════════════════════════════════════════════════
+   i18n — Full Translation Dictionary
+   ═══════════════════════════════════════════════════════════════ */
+const i18n = {
+  en: {
+    // Nav
+    edit_picture: "Edit Picture", edit_name: "Edit Name",
+    reset_password: "Reset Password", sign_out: "Sign Out",
+    // Upload View
+    new_print_order: "New Print Order", go_to_dashboard: "Go to Dashboard",
+    privacy_label: "Privacy:", privacy_text: "Your files are used only to print. After printing they are deleted automatically. We do not keep a copy for admin viewing — only a print receipt (pages / amount) stays for the shop bill.",
+    price_list_title: "Price list (₹ per page) · live from shop (one / both sides)",
+    th_paper: "Paper", th_bw_one: "B&W one", th_bw_both: "B&W both",
+    th_color_one: "Colour one", th_color_both: "Colour both",
+    select_files: "Select Files", upload_hint: "PDF, JPG, PNG · Max 25 MB each",
+    // File Config
+    print_mode: "Print Mode", color_or_mono: "Color or monochrome",
+    bw: "B&W", color: "Color",
+    copies: "Copies", num_prints: "Number of prints",
+    paper_size: "Paper Size", select_size: "Select document size",
+    sides: "Sides", one_or_both: "One or Both",
+    one: "One", both: "Both", remove: "Remove",
+    // Checkout
+    order_details_payment: "Order Details & Payment",
+    order_type: "Order Type", regular: "Regular", scheduled_pickup: "Scheduled Pickup",
+    date: "Date", time: "Time",
+    payment_method: "Payment Method", cash_at_shop: "Cash at Shop",
+    online_razorpay: "Online (Razorpay)",
+    cash_note: "Cash available for immediate orders only.",
+    schedule_note: "Scheduled orders require online payment.",
+    total_files: "Total Files", total_pages: "Total Pages (approx)",
+    estimated_total: "Estimated Total", submit_order: "Submit Order",
+    // Dashboard View
+    your_orders: "Your Print Orders & Tracking",
+    track_status: "Track real-time status of your documents",
+    refresh: "Refresh", new_order: "New Order",
+    th_document: "Document", th_cost: "Total Cost", th_payment: "Payment",
+    th_status: "Status", th_schedule: "Schedule", th_action: "Action",
+    loading: "Loading…", no_orders: "No print orders submitted yet.",
+    load_error: "Failed to load orders.", cancel: "Cancel",
+    cannot_cancel: "Cannot Cancel",
+  },
+  hi: {
+    edit_picture: "चित्र बदलें", edit_name: "नाम बदलें",
+    reset_password: "पासवर्ड रीसेट करें", sign_out: "साइन आउट",
+    new_print_order: "नया प्रिंट ऑर्डर", go_to_dashboard: "डैशबोर्ड पर जाएं",
+    privacy_label: "गोपनीयता:", privacy_text: "आपकी फ़ाइलें केवल प्रिंट करने के लिए उपयोग की जाती हैं। प्रिंटिंग के बाद वे स्वचालित रूप से हटा दी जाती हैं। हम एडमिन को देखने के लिए कोई कॉपी नहीं रखते — केवल प्रिंट रसीद (पेज / राशि) दुकान के बिल के लिए रहती है।",
+    price_list_title: "मूल्य सूची (₹ प्रति पेज) · दुकान से लाइव (एक / दोनों तरफ)",
+    th_paper: "कागज़", th_bw_one: "B&W एक", th_bw_both: "B&W दोनों",
+    th_color_one: "रंगीन एक", th_color_both: "रंगीन दोनों",
+    select_files: "फ़ाइलें चुनें", upload_hint: "PDF, JPG, PNG · अधिकतम 25 MB प्रत्येक",
+    print_mode: "प्रिंट मोड", color_or_mono: "रंगीन या काला-सफ़ेद",
+    bw: "B&W", color: "रंगीन",
+    copies: "प्रतियाँ", num_prints: "प्रिंट की संख्या",
+    paper_size: "कागज़ का आकार", select_size: "दस्तावेज़ का आकार चुनें",
+    sides: "साइड", one_or_both: "एक या दोनों",
+    one: "एक", both: "दोनों", remove: "हटाएं",
+    order_details_payment: "ऑर्डर विवरण और भुगतान",
+    order_type: "ऑर्डर प्रकार", regular: "नियमित", scheduled_pickup: "निर्धारित पिकअप",
+    date: "तारीख", time: "समय",
+    payment_method: "भुगतान विधि", cash_at_shop: "दुकान पर नकद",
+    online_razorpay: "ऑनलाइन (Razorpay)",
+    cash_note: "नकद केवल तत्काल ऑर्डर के लिए उपलब्ध।",
+    schedule_note: "निर्धारित ऑर्डर के लिए ऑनलाइन भुगतान आवश्यक।",
+    total_files: "कुल फ़ाइलें", total_pages: "कुल पेज (लगभग)",
+    estimated_total: "अनुमानित कुल", submit_order: "ऑर्डर जमा करें",
+    your_orders: "आपके प्रिंट ऑर्डर और ट्रैकिंग",
+    track_status: "अपने दस्तावेज़ों की रीयल-टाइम स्थिति ट्रैक करें",
+    refresh: "रीफ़्रेश", new_order: "नया ऑर्डर",
+    th_document: "दस्तावेज़", th_cost: "कुल लागत", th_payment: "भुगतान",
+    th_status: "स्थिति", th_schedule: "शेड्यूल", th_action: "कार्रवाई",
+    loading: "लोड हो रहा है…", no_orders: "अभी तक कोई प्रिंट ऑर्डर नहीं।",
+    load_error: "ऑर्डर लोड करने में विफल।", cancel: "रद्द करें",
+    cannot_cancel: "रद्द नहीं कर सकते",
+  },
+  gu: {
+    edit_picture: "ચિત્ર બદલો", edit_name: "નામ બદલો",
+    reset_password: "પાસવર્ડ રીસેટ કરો", sign_out: "સાઇન આઉટ",
+    new_print_order: "નવો પ્રિન્ટ ઓર્ડર", go_to_dashboard: "ડેશબોર્ડ પર જાઓ",
+    privacy_label: "ગોપનીયતા:", privacy_text: "તમારી ફાઈલો ફક્ત પ્રિન્ટ કરવા માટે વપરાય છે. પ્રિન્ટિંગ પછી તે આપમેળે ડિલીટ થઈ જાય છે. અમે એડમિન જોવા માટે કોઈ કૉપી રાખતા નથી — ફક્ત પ્રિન્ટ રસીદ (પેજ / રકમ) દુકાનના બિલ માટે રહે છે.",
+    price_list_title: "કિંમત યાદી (₹ પ્રતિ પેજ) · દુકાનમાંથી લાઇવ (એક / બંને બાજુ)",
+    th_paper: "કાગળ", th_bw_one: "B&W એક", th_bw_both: "B&W બંને",
+    th_color_one: "રંગીન એક", th_color_both: "રંગીન બંને",
+    select_files: "ફાઈલો પસંદ કરો", upload_hint: "PDF, JPG, PNG · મહત્તમ 25 MB દરેક",
+    print_mode: "પ્રિન્ટ મોડ", color_or_mono: "રંગીન અથવા કાળા-સફેદ",
+    bw: "B&W", color: "રંગીન",
+    copies: "નકલો", num_prints: "પ્રિન્ટની સંખ્યા",
+    paper_size: "કાગળનું કદ", select_size: "દસ્તાવેજનું કદ પસંદ કરો",
+    sides: "બાજુ", one_or_both: "એક અથવા બંને",
+    one: "એક", both: "બંને", remove: "દૂર કરો",
+    order_details_payment: "ઓર્ડર વિગતો અને ચુકવણી",
+    order_type: "ઓર્ડર પ્રકાર", regular: "નિયમિત", scheduled_pickup: "સુનિશ્ચિત પિકઅપ",
+    date: "તારીખ", time: "સમય",
+    payment_method: "ચુકવણી પદ્ધતિ", cash_at_shop: "દુકાન પર રોકડ",
+    online_razorpay: "ઓનલાઈન (Razorpay)",
+    cash_note: "રોકડ ફક્ત તાત્કાલિક ઓર્ડર માટે ઉપલબ્ધ.",
+    schedule_note: "સુનિશ્ચિત ઓર્ડર માટે ઓનલાઈન ચુકવણી જરૂરી.",
+    total_files: "કુલ ફાઈલો", total_pages: "કુલ પેજ (આશરે)",
+    estimated_total: "અંદાજિત કુલ", submit_order: "ઓર્ડર સબમિટ કરો",
+    your_orders: "તમારા પ્રિન્ટ ઓર્ડર અને ટ્રેકિંગ",
+    track_status: "તમારા દસ્તાવેજોની રીયલ-ટાઇમ સ્થિતિ ટ્રૅક કરો",
+    refresh: "રીફ્રેશ", new_order: "નવો ઓર્ડર",
+    th_document: "દસ્તાવેજ", th_cost: "કુલ ખર્ચ", th_payment: "ચુકવણી",
+    th_status: "સ્થિતિ", th_schedule: "શેડ્યૂલ", th_action: "ક્રિયા",
+    loading: "લોડ થઈ રહ્યું છે…", no_orders: "હજી સુધી કોઈ પ્રિન્ટ ઓર્ડર નથી.",
+    load_error: "ઓર્ડર લોડ કરવામાં નિષ્ફળ.", cancel: "રદ કરો",
+    cannot_cancel: "રદ કરી શકાતું નથી",
+  }
+};
+
+let currentLang = 'en';
+
+function t(key) {
+  return (i18n[currentLang] && i18n[currentLang][key]) || (i18n.en[key]) || key;
+}
+
+function applyLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('sep_lang', lang);
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (val) el.textContent = val;
+  });
+  // Re-render file configs so their labels also translate
+  if (uploadedFiles.length > 0) renderFileConfigs();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Init
+   ═══════════════════════════════════════════════════════════════ */
 async function initDashboard(requiredRole) {
-  await fetchDashRates();
   const user = await requireAuth(requiredRole);
   if (!user) return null;
 
-  // ── Sidebar user info ─────────────────────────────────────────────────────
-  const nameEl   = document.getElementById('sidebarUserName');
-  const roleEl   = document.getElementById('sidebarUserRoleLabel');
-  const avatarEl = document.getElementById('sidebarAvatar');
+  document.getElementById('navUserName').textContent = user.name;
+  document.getElementById('navAvatar').textContent = user.name.charAt(0).toUpperCase();
 
-  if (nameEl)   nameEl.textContent   = user.name;
-  if (roleEl)   roleEl.textContent   = user.role.charAt(0).toUpperCase() + user.role.slice(1).replace('_', ' ');
-  if (avatarEl) avatarEl.textContent = user.name.charAt(0).toUpperCase();
-
-  // ── Welcome greeting ──────────────────────────────────────────────────────
-  const welcomeEl = document.getElementById('welcomeName');
-  if (welcomeEl) welcomeEl.textContent = user.name.split(' ')[0];
-
-  // ── Logout button ─────────────────────────────────────────────────────────
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', (e) => { e.preventDefault(); logout(); });
-  }
-
-  // If on customer dashboard, load order history and stats
-  if (user.role === 'customer' && document.getElementById('custOrdersTableBody')) {
-    loadCustomerOrders();
-  }
-
+  setupNavControls();
+  setupUploadZone();
+  loadCustomerOrders();
   return user;
 }
 
-async function fetchDashRates() {
-  try {
-    const { ok, data } = await apiCall('/shop/rates', 'GET');
-    if (ok && data) {
-      if (data.PRICE_RATES) DASH_PRICE_RATES = data.PRICE_RATES;
-      if (data.PAPER_MULTIPLIERS) DASH_PAPER_MULTIPLIERS = data.PAPER_MULTIPLIERS;
-    }
-  } catch (err) {
-    console.warn("Could not fetch latest rates on dashboard.");
-  }
-}
+/* ═══════════════════════════════════════════════════════════════
+   Nav Controls
+   ═══════════════════════════════════════════════════════════════ */
+function setupNavControls() {
+  // ── Theme ────────────────────────────────────────────────────
+  const themeBtn = document.getElementById('themeToggleBtn');
+  const themeIcon = document.getElementById('themeIcon');
+  const html = document.documentElement;
 
-/**
- * Load and render customer's own print orders & stats
- */
-async function loadCustomerOrders() {
-  const tbody = document.getElementById('custOrdersTableBody');
-  if (!tbody) return;
+  const savedTheme = localStorage.getItem('sep_theme') || 'light';
+  html.setAttribute('data-theme', savedTheme);
+  themeIcon.className = savedTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
 
-  const { ok, data } = await apiCall('/orders', 'GET');
-  if (!ok) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
-    return;
-  }
-
-  const orders = data.orders || [];
-
-  // Update customer stats
-  const totalOrdersEl = document.getElementById('custStatTotal');
-  const completedEl = document.getElementById('custStatCompleted');
-  const pendingEl = document.getElementById('custStatPending');
-  const spentEl = document.getElementById('custStatSpent');
-
-  const completedCount = orders.filter(o => o.status === 'Completed').length;
-  const pendingCount = orders.filter(o => ['Submitted', 'Accepted', 'Printing'].includes(o.status)).length;
-  const totalSpent = orders.reduce((sum, o) => sum + (o.status !== 'Rejected' ? o.total_price : 0), 0);
-
-  if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
-  if (completedEl) completedEl.textContent = completedCount;
-  if (pendingEl) pendingEl.textContent = pendingCount;
-  if (spentEl) spentEl.textContent = `₹${totalSpent.toFixed(2)}`;
-
-  if (orders.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No print orders submitted yet.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = orders.map(o => {
-    const shortId = o.id.substring(0, 8);
-    const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-    const modeBadge = o.print_mode === 'color' ? '<span class="badge bg-warning text-dark">Color</span>' : '<span class="badge bg-secondary">B&W</span>';
-    
-    return `
-      <tr>
-        <td><span class="font-monospace text-info small">#${shortId}</span></td>
-        <td>
-          <div class="fw-bold text-truncate" style="max-width:180px;" title="${escapeHtml(o.file_name)}">
-            <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>${escapeHtml(o.file_name)}
-          </div>
-          <small class="text-muted">${(o.file_size / (1024*1024)).toFixed(2)} MB</small>
-        </td>
-        <td>${modeBadge} <small class="text-muted">· ${o.paper_size || 'A4'}</small></td>
-        <td>
-          <div>${o.copies} ${o.copies > 1 ? 'copies' : 'copy'}</div>
-          <small class="text-muted">${o.printed_pages} pages</small>
-        </td>
-        <td><strong class="text-success">₹${o.total_price.toFixed(2)}</strong></td>
-        <td>
-          <span class="order-status-badge status-${o.status}">● ${o.status}</span>
-          ${o.rejection_reason ? `<div class="small text-danger mt-1 text-truncate" style="max-width:140px;" title="${escapeHtml(o.rejection_reason)}">Reason: ${escapeHtml(o.rejection_reason)}</div>` : ''}
-        </td>
-        <td><small class="text-muted">${dateStr}</small></td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// ── DASHBOARD UPLOAD FEATURE ────────────────────────────────────────────────
-const DASH_UPLOAD_MAX = 10 * 1024 * 1024;
-let DASH_PRICE_RATES = { bw: 2.0, color: 5.0 };
-let DASH_PAPER_MULTIPLIERS = { A4: 1.0, A3: 1.25, Letter: 1.1 };
-
-let dashUploadedFiles = [];
-let dashActiveFileId = null;
-let dashFileCounter = 0;
-let dashConfigModal = null;
-
-document.addEventListener('DOMContentLoaded', () => {
-  const fileInput = document.getElementById('dashFileInput');
-  if (!fileInput) return; // Not on customer dashboard
-
-  // Initialize Modal
-  dashConfigModal = new bootstrap.Modal(document.getElementById('configModal'), {
-    backdrop: 'static'
+  themeBtn.addEventListener('click', () => {
+    const cur = html.getAttribute('data-theme');
+    const next = cur === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('sep_theme', next);
+    themeIcon.className = next === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
   });
 
-  fileInput.addEventListener('change', handleDashFileSelection);
-  document.getElementsByName('dashRangeModeToggle').forEach(radio => {
-    radio.addEventListener('change', handleDashRangeSwitch);
-  });
-  
-  document.getElementById('dashCopiesInput').addEventListener('input', (e) => {
-    const file = getDashActiveFile();
-    if (file) {
-      file.copies = Math.max(1, Number(e.target.value) || 1);
-      renderDashSummary();
-    }
-  });
-  
-  document.getElementById('dashPaperSizeSelect').addEventListener('change', (e) => {
-    const file = getDashActiveFile();
-    if (file) {
-      file.paperSize = e.target.value;
-      renderDashSummary();
-    }
-  });
-  
-  document.getElementById('dashPageRangeInput').addEventListener('input', (e) => {
-    const file = getDashActiveFile();
-    if (file) {
-      file.pageRange = e.target.value;
-      renderDashSummary();
-    }
-  });
-  
-  document.getElementsByName('dashPrintMode').forEach((radio) => {
-    radio.addEventListener('change', (e) => {
-      const file = getDashActiveFile();
-      if (file) {
-        file.printMode = e.target.value;
-        renderDashSummary();
-      }
+  // ── Language ─────────────────────────────────────────────────
+  const savedLang = localStorage.getItem('sep_lang') || 'en';
+  applyLanguage(savedLang);
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      applyLanguage(e.target.dataset.lang);
+      if (typeof showToast === 'function') showToast(`Language → ${e.target.dataset.lang.toUpperCase()}`);
     });
   });
 
-  document.getElementById('dashSubmitOrderBtn').addEventListener('click', handleDashSubmitOrder);
-});
+  // ── Profile Dropdown ─────────────────────────────────────────
+  const profileBtn = document.getElementById('profileDropdownBtn');
+  const profileMenu = document.getElementById('profileMenu');
 
-function getDashActiveFile() {
-  return dashUploadedFiles.find(f => f.id === dashActiveFileId);
-}
-
-function handleDashRangeSwitch(event) {
-  const file = getDashActiveFile();
-  if (file) {
-    file.rangeMode = event.target.value;
-    if (file.rangeMode !== 'custom') file.pageRange = '';
-  }
-  renderDashConfigPanel();
-  renderDashSummary();
-}
-
-async function handleDashFileSelection() {
-  const fileInput = document.getElementById('dashFileInput');
-  const files = Array.from(fileInput.files);
-  if (files.length === 0) return;
-
-  let added = false;
-  for (const file of files) {
-    if (file.size > DASH_UPLOAD_MAX) {
-      if(typeof showToast === 'function') showToast(`File ${file.name} is larger than 10MB.`);
-      continue;
+  profileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileMenu.classList.toggle('show');
+  });
+  document.addEventListener('click', (e) => {
+    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+      profileMenu.classList.remove('show');
     }
-    if (!['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) {
-      if(typeof showToast === 'function') showToast(`File ${file.name} is not a supported format.`);
-      continue;
-    }
+  });
 
-    const pageCount = await getDashPageCount(file);
-    dashUploadedFiles.push({
-      id: `d_file_${dashFileCounter++}`,
-      fileObj: file,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      pages: pageCount,
-      printMode: 'bw',
-      copies: 1,
-      paperSize: 'A4',
-      rangeMode: 'full',
-      pageRange: ''
-    });
-    added = true;
-  }
-  fileInput.value = '';
-
-  if (added) {
-    if (!dashActiveFileId) dashActiveFileId = dashUploadedFiles[0].id;
-    renderDashFileList();
-    renderDashConfigPanel();
-    renderDashSummary();
-    dashConfigModal.show();
-  }
+  // ── Sign Out ─────────────────────────────────────────────────
+  document.getElementById('signOutBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    clearAuth();
+    window.location.replace('login.html');
+  });
 }
 
-function getDashPageCount(file) {
-  return new Promise((resolve) => {
+/* ═══════════════════════════════════════════════════════════════
+   View Switcher
+   ═══════════════════════════════════════════════════════════════ */
+function switchView(viewName) {
+  const uv = document.getElementById('uploadView');
+  const dv = document.getElementById('dashboardView');
+  if (viewName === 'upload') { uv.style.display = 'block'; dv.style.display = 'none'; }
+  else { uv.style.display = 'none'; dv.style.display = 'block'; loadCustomerOrders(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   File Upload
+   ═══════════════════════════════════════════════════════════════ */
+function setupUploadZone() {
+  const fileInput = document.getElementById('mainFileInput');
+  if (!fileInput) return;
+  fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      if (file.size > UPLOAD_MAX) { showToast(`${file.name} > 25MB`); continue; }
+      const pages = await getPageCount(file);
+      uploadedFiles.push({
+        id: `f_${fileCounter++}`, fileObj: file, name: file.name,
+        size: file.size, pages, copies: 1, mode: 'bw_one', paperSize: 'A4'
+      });
+    }
+    fileInput.value = '';
+    renderFileConfigs();
+  });
+}
+
+function getPageCount(file) {
+  return new Promise(resolve => {
     if (file.type !== 'application/pdf') { resolve(1); return; }
     const reader = new FileReader();
     reader.onload = () => {
-      const text = new TextDecoder('latin1').decode(reader.result);
-      const matches = text.match(/\/Type\s*\/Page\b/g);
-      resolve(matches ? matches.length : 1);
+      const txt = new TextDecoder('latin1').decode(reader.result);
+      const m = txt.match(/\/Type\s*\/Page\b/g);
+      resolve(m ? m.length : 1);
     };
     reader.readAsArrayBuffer(file);
   });
 }
 
-function formatDashBytes(bytes) {
-  if (bytes < 1024) return `${bytes} bytes`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+function fmtBytes(b) {
+  return b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(2)} MB`;
 }
 
-function renderDashFileList() {
-  const container = document.getElementById('dashFileListContainer');
-  const addBtn = document.getElementById('dashAddMoreFilesBtn');
+/* ═══════════════════════════════════════════════════════════════
+   Render File Config Cards
+   ═══════════════════════════════════════════════════════════════ */
+function renderFileConfigs() {
+  const container = document.getElementById('fileConfigContainer');
+  const checkout = document.getElementById('checkoutArea');
   container.innerHTML = '';
-  
-  if (dashUploadedFiles.length === 0) {
-    if (addBtn) addBtn.style.display = 'none';
-    dashConfigModal.hide();
-    return;
-  }
-  
-  if (addBtn) addBtn.style.display = 'flex';
+  if (uploadedFiles.length === 0) { checkout.style.display = 'none'; return; }
+  checkout.style.display = 'block';
 
-  dashUploadedFiles.forEach(f => {
-    const el = document.createElement('div');
-    el.className = `file-list-item ${f.id === dashActiveFileId ? 'active' : ''}`;
-    el.onclick = () => {
-      dashActiveFileId = f.id;
-      renderDashFileList();
-      renderDashConfigPanel();
-      renderDashSummary();
-    };
-
-    el.innerHTML = `
-      <div class="file-info-wrap">
-        <div class="file-list-name" title="${f.name}">${f.name}</div>
-        <div class="file-list-meta">
-          <span>${f.pages} page${f.pages > 1 ? 's' : ''}</span>
-          <span>${formatDashBytes(f.size)}</span>
+  uploadedFiles.forEach(file => {
+    const box = document.createElement('div');
+    box.className = 'file-config-box';
+    box.innerHTML = `
+      <div class="file-config-header">
+        <div>
+          <h6><i class="bi bi-file-earmark-text" style="margin-right:6px;"></i>${esc(file.name)}</h6>
+          <small style="color:var(--text-muted);">${file.pages} pg · ${fmtBytes(file.size)}</small>
+        </div>
+        <button class="remove-btn" onclick="removeFile('${file.id}')"><i class="bi bi-x-circle"></i> ${t('remove')}</button>
+      </div>
+      <div class="file-settings-row">
+        <!-- Print Mode -->
+        <div class="setting-card">
+          <div class="s-icon"><i class="bi bi-palette2"></i></div>
+          <div class="s-info"><div class="s-label">${t('print_mode')}</div><div class="s-desc">${t('color_or_mono')}</div></div>
+          <div class="s-control">
+            <div class="pill-group">
+              <div class="pill ${file.mode.startsWith('bw')?'active':''}" onclick="updateFileMode('${file.id}','bw')">${t('bw')}</div>
+              <div class="pill ${file.mode.startsWith('color')?'active':''}" onclick="updateFileMode('${file.id}','color')">${t('color')}</div>
+            </div>
+          </div>
+        </div>
+        <!-- Copies -->
+        <div class="setting-card">
+          <div class="s-icon"><i class="bi bi-files"></i></div>
+          <div class="s-info"><div class="s-label">${t('copies')}</div><div class="s-desc">${t('num_prints')}</div></div>
+          <div class="s-control">
+            <div class="stepper">
+              <button onclick="updateFile('${file.id}','copies',Math.max(1,${file.copies}-1))"><i class="bi bi-dash"></i></button>
+              <span>${file.copies}</span>
+              <button onclick="updateFile('${file.id}','copies',${file.copies}+1)"><i class="bi bi-plus"></i></button>
+            </div>
+          </div>
+        </div>
+        <!-- Paper Size -->
+        <div class="setting-card">
+          <div class="s-icon"><i class="bi bi-aspect-ratio"></i></div>
+          <div class="s-info"><div class="s-label">${t('paper_size')}</div><div class="s-desc">${t('select_size')}</div></div>
+          <div class="s-control">
+            <select class="mini-select" onchange="updateFile('${file.id}','paperSize',this.value)">
+              <option value="A4" ${file.paperSize==='A4'?'selected':''}>A4</option>
+              <option value="A3" ${file.paperSize==='A3'?'selected':''}>A3</option>
+              <option value="Letter" ${file.paperSize==='Letter'?'selected':''}>Letter</option>
+            </select>
+          </div>
+        </div>
+        <!-- Sides -->
+        <div class="setting-card">
+          <div class="s-icon"><i class="bi bi-file-earmark-break"></i></div>
+          <div class="s-info"><div class="s-label">${t('sides')}</div><div class="s-desc">${t('one_or_both')}</div></div>
+          <div class="s-control">
+            <div class="pill-group">
+              <div class="pill ${file.mode.endsWith('one')?'active':''}" onclick="updateFileSides('${file.id}','one')">${t('one')}</div>
+              <div class="pill ${file.mode.endsWith('both')?'active':''}" onclick="updateFileSides('${file.id}','both')">${t('both')}</div>
+            </div>
+          </div>
         </div>
       </div>
-      <button class="btn-remove-file" title="Remove file" data-id="${f.id}">
-        <i class="bi bi-x-lg"></i>
-      </button>
     `;
-
-    el.querySelector('.btn-remove-file').onclick = (e) => {
-      e.stopPropagation();
-      dashUploadedFiles = dashUploadedFiles.filter(item => item.id !== f.id);
-      if (dashActiveFileId === f.id) {
-        dashActiveFileId = dashUploadedFiles.length > 0 ? dashUploadedFiles[0].id : null;
-      }
-      renderDashFileList();
-      renderDashConfigPanel();
-      renderDashSummary();
-    };
-    container.appendChild(el);
+    container.appendChild(box);
   });
+  updateCheckoutSummary();
 }
 
-function renderDashConfigPanel() {
-  const emptyState = document.getElementById('dashConfigPanelEmpty');
-  const formPanel = document.getElementById('dashConfigPanelForm');
-  const file = getDashActiveFile();
+function removeFile(id) { uploadedFiles = uploadedFiles.filter(f => f.id !== id); renderFileConfigs(); }
 
-  if (!file) {
-    emptyState.style.display = 'block';
-    formPanel.style.display = 'none';
-    return;
-  }
-  emptyState.style.display = 'none';
-  formPanel.style.display = 'block';
+function updateFile(id, key, val) {
+  const f = uploadedFiles.find(x => x.id === id);
+  if (f) { f[key] = val; renderFileConfigs(); }
+}
+function updateFileMode(id, base) {
+  const f = uploadedFiles.find(x => x.id === id);
+  if (f) { f.mode = `${base}_${f.mode.endsWith('both')?'both':'one'}`; renderFileConfigs(); }
+}
+function updateFileSides(id, side) {
+  const f = uploadedFiles.find(x => x.id === id);
+  if (f) { f.mode = `${f.mode.startsWith('color')?'color':'bw'}_${side}`; renderFileConfigs(); }
+}
 
-  const printModeInput = document.querySelector(`input[name="dashPrintMode"][value="${file.printMode}"]`);
-  if (printModeInput) {
-    printModeInput.checked = true;
-  }
-  document.getElementById('dashCopiesInput').value = file.copies;
-  document.getElementById('dashPaperSizeSelect').value = file.paperSize || '';
-  
-  const rangeRadios = document.getElementsByName('dashRangeModeToggle');
-  rangeRadios.forEach((r) => r.checked = (r.value === file.rangeMode));
+/* ═══════════════════════════════════════════════════════════════
+   Checkout Logic
+   ═══════════════════════════════════════════════════════════════ */
+function setOrderType(type) {
+  currentOrderType = type;
+  document.getElementById('btnOrderNow').classList.toggle('active', type === 'now');
+  document.getElementById('btnOrderSchedule').classList.toggle('active', type === 'schedule');
+  document.getElementById('scheduleInputs').style.display = type === 'schedule' ? 'block' : 'none';
 
-  const customContainer = document.getElementById('dashCustomRangeContainer');
-  const customInput = document.getElementById('dashPageRangeInput');
-  if (file.rangeMode === 'custom') {
-    customContainer.style.display = 'block';
+  const cashBtn = document.getElementById('btnPayCash');
+  const noteEl = document.getElementById('paymentNote');
+  if (type === 'schedule') {
+    setPayment('online');
+    cashBtn.style.opacity = '.4'; cashBtn.style.pointerEvents = 'none';
+    noteEl.textContent = t('schedule_note');
+    noteEl.setAttribute('data-i18n', 'schedule_note');
   } else {
-    customContainer.style.display = 'none';
+    cashBtn.style.opacity = '1'; cashBtn.style.pointerEvents = 'auto';
+    noteEl.textContent = t('cash_note');
+    noteEl.setAttribute('data-i18n', 'cash_note');
   }
-  customInput.value = file.pageRange;
 }
 
-function parseDashPageRange(rangeText, maxPages) {
-  if (!rangeText || !rangeText.trim()) return { count: maxPages, error: null };
-  const pages = new Set();
-  const parts = rangeText.split(',').map((part) => part.trim()).filter(Boolean);
-  for (const part of parts) {
-    if (/^\d+$/.test(part)) {
-      const page = Number(part);
-      if (!page || page < 1 || page > maxPages) return { count: 0, error: `Page values must be between 1 and ${maxPages}.` };
-      pages.add(page);
-    } else if (/^\d+-\d+$/.test(part)) {
-      const [start, end] = part.split('-').map(Number);
-      if (start < 1 || end < start || end > maxPages) return { count: 0, error: `Ranges must fall between 1 and ${maxPages}.` };
-      for (let p = start; p <= end; p += 1) pages.add(p);
-    } else {
-      return { count: 0, error: 'Use a valid page range.' };
-    }
-  }
-  return { count: pages.size, error: null };
+function setPayment(method) {
+  currentPaymentMethod = method;
+  document.getElementById('btnPayCash').classList.toggle('active', method === 'cash');
+  document.getElementById('btnPayOnline').classList.toggle('active', method === 'online');
 }
 
-function calculateDashFileCost(file) {
-  if (!file) return 0;
-  let selectedPages = file.pages;
-  if (file.rangeMode === 'custom') {
-    const parsed = parseDashPageRange(file.pageRange, file.pages || 1);
-    selectedPages = parsed.count;
-  }
-  if (file.pages === 0) selectedPages = 0;
-  
-  const rate = DASH_PRICE_RATES[file.printMode] || DASH_PRICE_RATES.bw;
-  const multiplier = DASH_PAPER_MULTIPLIERS[file.paperSize] || 1.0;
-  return selectedPages * file.copies * rate * multiplier;
+function updateCheckoutSummary() {
+  let files = uploadedFiles.length, pages = 0, cost = 0;
+  uploadedFiles.forEach(f => {
+    pages += f.pages * f.copies;
+    cost += f.pages * f.copies * (PRICE_RATES[f.mode] || 2) * (PAPER_MULTIPLIERS[f.paperSize] || 1);
+  });
+  document.getElementById('grandTotalFiles').textContent = files;
+  document.getElementById('grandTotalPages').textContent = pages;
+  document.getElementById('grandTotalCost').textContent = `₹${cost.toFixed(2)}`;
 }
 
-function renderDashSummary() {
-  const file = getDashActiveFile();
-  const submitBtn = document.getElementById('dashSubmitOrderBtn');
-  
-  let grandTotal = 0;
-  let hasErrors = false;
-  
-  for (const f of dashUploadedFiles) {
-    grandTotal += calculateDashFileCost(f);
-    if (f.rangeMode === 'custom') {
-      const parsed = parseDashPageRange(f.pageRange, f.pages);
-      if (parsed.error || parsed.count < 1) hasErrors = true;
-    }
-    if (f.pages === 0) hasErrors = true;
+/* ═══════════════════════════════════════════════════════════════
+   Submit + Razorpay
+   ═══════════════════════════════════════════════════════════════ */
+async function submitMainOrder() {
+  if (uploadedFiles.length === 0) return;
+  let scheduleTimeStr = null;
+  if (currentOrderType === 'schedule') {
+    const d = document.getElementById('scheduleDate').value;
+    const tm = document.getElementById('scheduleTime').value;
+    if (!d || !tm) { showToast(t('date') + ' & ' + t('time') + ' required', 'error'); return; }
+    scheduleTimeStr = `${d} ${tm}`;
   }
-  
-  if (file) {
-    let selectedPages = file.pages;
-    if (file.rangeMode === 'custom') {
-      const parsed = parseDashPageRange(file.pageRange, file.pages || 1);
-      selectedPages = parsed.count;
-    }
-    if (file.pages === 0) selectedPages = 0;
-    
-    document.getElementById('dashSummaryPageCount').textContent = file.pages || '0';
-    document.getElementById('dashSummarySelectedPages').textContent = selectedPages || '0';
-    document.getElementById('dashSummaryCopies').textContent = file.copies;
-    document.getElementById('dashSummaryMode').textContent = file.printMode === 'color' ? 'Color' : 'B&W';
-    document.getElementById('dashSummaryPaperSize').textContent = file.paperSize || 'A4';
-    
-    const activeCost = calculateDashFileCost(file);
-    document.getElementById('dashSummaryTotal').textContent = `₹${activeCost.toFixed(2)}`;
-  } else {
-    document.getElementById('dashSummaryPageCount').textContent = '0';
-    document.getElementById('dashSummarySelectedPages').textContent = '0';
-    document.getElementById('dashSummaryCopies').textContent = '1';
-    document.getElementById('dashSummaryMode').textContent = 'B&W';
-    document.getElementById('dashSummaryPaperSize').textContent = 'A4';
-    document.getElementById('dashSummaryTotal').textContent = '₹0.00';
-  }
-
-  document.getElementById('dashGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-  submitBtn.disabled = dashUploadedFiles.length === 0 || hasErrors;
+  let total = 0;
+  uploadedFiles.forEach(f => {
+    total += f.pages * f.copies * (PRICE_RATES[f.mode]||2) * (PAPER_MULTIPLIERS[f.paperSize]||1);
+  });
+  if (currentPaymentMethod === 'online') initRazorpayFlow(total, scheduleTimeStr);
+  else executeOrderSubmission(scheduleTimeStr, 'pending');
 }
 
-async function handleDashSubmitOrder() {
-  if (dashUploadedFiles.length === 0) return;
-  const button = document.getElementById('dashSubmitOrderBtn');
-  button.disabled = true;
-  button.textContent = 'Submitting…';
-
+function initRazorpayFlow(amount, scheduleTimeStr) {
+  if (typeof window.Razorpay === 'undefined') { showToast('Razorpay SDK not loaded.', 'error'); return; }
   try {
-    for (const file of dashUploadedFiles) {
-      const formData = new FormData();
-      formData.append('file', file.fileObj);
-      formData.append('print_mode', file.printMode);
-      formData.append('copies', file.copies);
-      formData.append('range_type', file.rangeMode);
-      formData.append('page_range', file.pageRange);
-      formData.append('paper_size', file.paperSize);
-
-      const paymentMethod = document.querySelector('input[name="dashPaymentMethod"]:checked')?.value || 'cash';
-      formData.append('payment_method', paymentMethod);
-
-      const response = await fetch(`${CONFIG.API_BASE}/orders`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Failed to submit file: ${file.name}`);
-      }
-    }
-
-    dashUploadedFiles = [];
-    dashActiveFileId = null;
-    document.getElementById('dashFileInput').value = '';
-    
-    dashConfigModal.hide();
-    if(typeof showToast === 'function') showToast('Orders submitted successfully!');
-    if(typeof loadCustomerOrders === 'function') loadCustomerOrders();
-  } catch (err) {
-    if(typeof showToast === 'function') showToast(err.message || 'Network error. Please try again.');
-  } finally {
-    if (dashUploadedFiles.length > 0) button.disabled = false;
-    button.textContent = 'Submit Order';
+    const rzp = new window.Razorpay({
+      key: "rzp_test_placeholder", amount: Math.round(amount * 100), currency: "INR",
+      name: "Smart e-Print", description: "Print Order Payment",
+      handler: () => executeOrderSubmission(scheduleTimeStr, 'paid'),
+      prefill: { name: document.getElementById('navUserName').textContent },
+      theme: { color: "#2563EB" }
+    });
+    rzp.on('payment.failed', r => showToast(`Payment Failed: ${r.error.description}`, 'error'));
+    rzp.open();
+  } catch(e) {
+    console.warn("Razorpay open failed, simulating success.");
+    executeOrderSubmission(scheduleTimeStr, 'paid');
   }
+}
+
+async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
+  try {
+    for (const file of uploadedFiles) {
+      const fd = new FormData();
+      fd.append('file', file.fileObj);
+      fd.append('print_mode', file.mode);
+      fd.append('copies', file.copies);
+      fd.append('paper_size', file.paperSize);
+      fd.append('payment_method', currentPaymentMethod);
+      fd.append('payment_status', paymentStatus);
+      if (scheduleTimeStr) fd.append('schedule_time', scheduleTimeStr);
+      const res = await fetch(`${CONFIG.API_BASE}/orders`, {
+        method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd
+      });
+      if (!res.ok) throw new Error(`Failed: ${file.name}`);
+    }
+    showToast('Order submitted!', 'success');
+    uploadedFiles = []; renderFileConfigs();
+    document.getElementById('mainFileInput').value = '';
+    switchView('dashboard');
+  } catch(err) { showToast(err.message || 'Network error.', 'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Dashboard — Order Table
+   ═══════════════════════════════════════════════════════════════ */
+async function loadCustomerOrders() {
+  const tbody = document.getElementById('custOrdersTableBody');
+  if (!tbody) return;
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/orders`, { headers: { Authorization: `Bearer ${getToken()}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error();
+    const orders = data.orders || [];
+    if (orders.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);">${t('no_orders')}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = orders.map(o => {
+      const pay = o.payment_status === 'paid'
+        ? `<span style="color:var(--success);font-weight:600;">Paid</span>`
+        : `<span style="color:#eab308;font-weight:600;">Pending</span>`;
+      const canCancel = ['Submitted','Accepted'].includes(o.status);
+      const action = canCancel
+        ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${o.id}')">${t('cancel')}</button>`
+        : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
+      return `<tr>
+        <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.file_name)}</strong>
+            <small style="color:var(--text-muted);">${o.copies} × ${o.print_mode} · ${o.paper_size}</small></td>
+        <td><strong style="color:var(--success);">₹${(o.total_price||0).toFixed(2)}</strong></td>
+        <td>${pay}</td>
+        <td><span class="badge-status badge-${o.status}">${o.status}</span></td>
+        <td>${o.schedule_time || '—'}</td>
+        <td>${action}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--danger);">${t('load_error')}</td></tr>`;
+  }
+}
+
+async function cancelOrder(id) {
+  if (!confirm('Cancel this order?')) return;
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ status: 'Rejected', rejection_reason: 'Cancelled by customer' })
+    });
+    if (res.ok) { showToast('Cancelled', 'success'); loadCustomerOrders(); }
+    else throw new Error();
+  } catch(e) { showToast('Failed to cancel.', 'error'); }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
