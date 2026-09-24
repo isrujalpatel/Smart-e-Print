@@ -86,6 +86,45 @@
       from { opacity: 0; transform: translateY(-6px) scaleY(.97); }
       to   { opacity: 1; transform: translateY(0)    scaleY(1); }
     }
+
+    /* ── Print Agent ─────────────────────────────────────────── */
+    .agent-status-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px; border-radius:20px; font-size:.76rem; font-weight:600;
+    }
+    .agent-online  { background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.3); }
+    .agent-offline { background:rgba(239,68,68,.15);  color:#f87171; border:1px solid rgba(239,68,68,.3); }
+    .agent-checking{ background:rgba(234,179,8,.12);  color:#facc15; border:1px solid rgba(234,179,8,.25); }
+
+    .printer-card {
+      background:rgba(255,255,255,.04); border:1.5px solid rgba(255,255,255,.08);
+      border-radius:12px; padding:14px 16px; cursor:pointer;
+      transition:all .2s ease; display:flex; align-items:center; gap:12px; margin-bottom:8px;
+    }
+    .printer-card:hover  { border-color:rgba(99,102,241,.5); background:rgba(99,102,241,.07); }
+    .printer-card.selected { border-color:#6366f1; background:rgba(99,102,241,.15); }
+    .printer-card .pc-icon { font-size:1.5rem; color:#6366f1; }
+    .printer-card .pc-info { flex:1; }
+    .printer-card .pc-name { font-weight:600; font-size:.92rem; }
+    .printer-card .pc-status { font-size:.75rem; margin-top:2px; }
+    .pc-status.ready   { color:#4ade80; }
+    .pc-status.offline { color:#f87171; }
+    .pc-status.busy    { color:#facc15; }
+    .default-badge { background:rgba(99,102,241,.25); color:#a5b4fc; border-radius:6px; padding:2px 7px; font-size:.68rem; font-weight:700; margin-left:6px; }
+
+    .config-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1);
+      border-radius:8px; padding:5px 10px; font-size:.82rem; font-weight:600; margin:4px;
+    }
+    .config-pill i { color:#a5b4fc; }
+
+    .print-step { display:none; }
+    .print-step.active { display:block; }
+
+    .job-progress .bar-wrap { background:rgba(255,255,255,.08); border-radius:8px; height:6px; overflow:hidden; margin-top:8px; }
+    .job-progress .bar-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#6366f1,#a78bfa); transition:width .4s ease; }
+
   </style>
 </head>
 <body>
@@ -320,6 +359,93 @@
     </div>
   </div>
 
+  <!-- ── Print Agent Modal ─────────────────────────────────────────────── -->
+  <div class="modal fade" id="printAgentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-printer me-2"></i>Print via Agent</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" id="printAgentCloseBtn"></button>
+        </div>
+        <div class="modal-body pt-2">
+
+          <!-- STEP 1: Select Printer -->
+          <div class="print-step active" id="printStep1">
+            <p class="text-muted mb-3" style="font-size:.85rem;">
+              <i class="bi bi-info-circle me-1"></i>
+              Detected printers on this Admin PC via the local Print Agent.
+            </p>
+            <div id="printerListContainer">
+              <div class="text-center py-4" id="printerLoadingState">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                <span class="text-muted">Connecting to Print Agent…</span>
+              </div>
+            </div>
+            <div id="agentOfflineBanner" class="d-none">
+              <div class="p-3 rounded" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);">
+                <div class="fw-bold text-danger mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Print Agent Offline</div>
+                <p class="text-muted mb-2" style="font-size:.82rem;">
+                  The Smart E-Print Print Agent is not running on this PC.<br>
+                  Start it using <code>start-agent.bat</code> in the print-agent folder.
+                </p>
+                <button class="btn btn-sm btn-outline-warning" onclick="pingAgentAndLoadPrinters()">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Retry
+                </button>
+              </div>
+            </div>
+            <div class="mt-3 d-flex justify-content-end">
+              <button class="btn btn-primary" id="btnSelectPrinter" disabled onclick="gotoStep2()">
+                <i class="bi bi-arrow-right me-1"></i>Next: Confirm Config
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2: Config Summary + Print Now -->
+          <div class="print-step" id="printStep2">
+            <div class="mb-3">
+              <div class="text-muted mb-1" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;">Selected Printer</div>
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-printer-fill text-primary fs-5"></i>
+                <span id="summaryPrinterName" class="fw-bold fs-6"></span>
+              </div>
+            </div>
+            <hr class="my-2" style="border-color:rgba(255,255,255,.1);" />
+            <div class="text-muted mb-2" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;">
+              Print Configuration (from order)
+            </div>
+            <div id="configPillsContainer" class="mb-3"></div>
+            <hr class="my-2" style="border-color:rgba(255,255,255,.1);" />
+            <div class="mb-2">
+              <div class="text-muted mb-1" style="font-size:.8rem;">Document</div>
+              <div id="summaryFileName" class="fw-bold text-break"></div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-outline-secondary" onclick="gotoStep1()">
+                <i class="bi bi-arrow-left me-1"></i>Back
+              </button>
+              <button class="btn btn-primary flex-grow-1" id="btnPrintNow" onclick="submitPrintJob()">
+                <i class="bi bi-send-fill me-1"></i>Print Now
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 3: Job Status -->
+          <div class="print-step" id="printStep3">
+            <div class="text-center py-2">
+              <div id="jobStatusIcon" style="font-size:2.5rem; margin-bottom:8px;">⏳</div>
+              <div id="jobStatusTitle" class="fw-bold fs-6 mb-1">Sending to printer…</div>
+              <div id="jobStatusMessage" class="text-muted" style="font-size:.84rem;"></div>
+              <div class="job-progress mt-3">
+                <div class="bar-wrap"><div class="bar-fill" id="jobProgressBar" style="width:30%"></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /modal-body -->
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
@@ -330,8 +456,17 @@
     let rejectModalInstance = null;
     let detailsModalInstance = null;
     let settingsModalInstance = null;
+    let printAgentModalInstance = null;
     let _adminPollTimer = null;
     let _knownAdminOrderIds = new Set();
+
+    // ── Print Agent state ──────────────────────────────────────────────────
+    const AGENT_BASE = 'http://127.0.0.1:8765';
+    let _agentToken   = '';          // set from localStorage
+    let _selectedPrinter = null;     // {name, status, is_default}
+    let _printOrderId    = null;     // current order being printed
+    let _pollInterval    = null;     // job status polling timer
+
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Role Guard: strictly 'admin' (or legacy 'owner')
@@ -350,6 +485,10 @@
       rejectModalInstance = new bootstrap.Modal(document.getElementById('rejectModal'));
       detailsModalInstance = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
       settingsModalInstance = new bootstrap.Modal(document.getElementById('settingsModal'));
+      printAgentModalInstance = new bootstrap.Modal(document.getElementById('printAgentModal'));
+
+      // Load agent token from localStorage
+      _agentToken = localStorage.getItem('seprint_agent_token') || 'seprint-agent-secret-2026';
 
       // Rates management
       document.getElementById('navSettings').addEventListener('click', loadRatesToModal);
@@ -371,6 +510,18 @@
       });
 
       document.getElementById('btnConfirmReject').addEventListener('click', handleConfirmReject);
+
+      // Reset print modal state on close
+      document.getElementById('printAgentModal').addEventListener('hidden.bs.modal', () => {
+        clearInterval(_pollInterval);
+        _selectedPrinter = null;
+        _printOrderId = null;
+        showPrintStep('printStep1');
+        document.getElementById('printerListContainer').innerHTML =
+          '<div class="text-center py-4" id="printerLoadingState"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted">Connecting to Print Agent…</span></div>';
+        document.getElementById('agentOfflineBanner').classList.add('d-none');
+        document.getElementById('btnSelectPrinter').disabled = true;
+      });
 
       loadOrders();
       loadStats();
@@ -511,7 +662,7 @@
           `;
         } else if (o.status === 'Accepted') {
           actionButtons = `
-            <button class="btn btn-primary btn-action-sm me-1" onclick="updateStatus('${o.id}', 'Printing')">
+            <button class="btn btn-primary btn-action-sm me-1" onclick="openPrintAgentModal('${o.id}')">
               <i class="bi bi-printer"></i> Print
             </button>
             <button class="btn btn-outline-danger btn-action-sm" onclick="openRejectModal('${o.id}')">
@@ -740,6 +891,294 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PRINT AGENT — full integration
+       ═══════════════════════════════════════════════════════════════ */
+
+    /**
+     * Opens the Print-via-Agent modal for a given order.
+     * Called when admin clicks the [Print] button on an Accepted order.
+     */
+    async function openPrintAgentModal(orderId) {
+      _printOrderId = orderId;
+      _selectedPrinter = null;
+
+      // Reset to step 1 fresh state
+      showPrintStep('printStep1');
+      document.getElementById('agentOfflineBanner').classList.add('d-none');
+      document.getElementById('btnSelectPrinter').disabled = true;
+      document.getElementById('printerListContainer').innerHTML =
+        '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted">Connecting to Print Agent…</span></div>';
+
+      printAgentModalInstance.show();
+
+      // Start pinging agent and loading printers
+      await pingAgentAndLoadPrinters();
+    }
+
+    /**
+     * Pings GET /status, then GET /printers.
+     * Shows offline banner if agent is unreachable.
+     */
+    async function pingAgentAndLoadPrinters() {
+      const container = document.getElementById('printerListContainer');
+      const offlineBanner = document.getElementById('agentOfflineBanner');
+
+      // Reset UI
+      offlineBanner.classList.add('d-none');
+      container.innerHTML =
+        '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted">Connecting to Print Agent…</span></div>';
+      document.getElementById('btnSelectPrinter').disabled = true;
+
+      try {
+        // 1. Ping /status
+        const statusRes = await fetch(`${AGENT_BASE}/status`, {
+          headers: { 'X-Agent-Token': _agentToken },
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!statusRes.ok) throw new Error('Agent returned non-OK status');
+
+        // 2. Fetch /printers
+        const printersRes = await fetch(`${AGENT_BASE}/printers`, {
+          headers: { 'X-Agent-Token': _agentToken },
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!printersRes.ok) throw new Error('Failed to enumerate printers');
+
+        const { printers } = await printersRes.json();
+        renderPrinterCards(printers);
+
+      } catch (err) {
+        // Agent offline or unreachable
+        container.innerHTML = '';
+        offlineBanner.classList.remove('d-none');
+        console.warn('[Print Agent] unreachable:', err.message);
+      }
+    }
+
+    /**
+     * Renders the list of printer cards from the agent's /printers response.
+     */
+    function renderPrinterCards(printers) {
+      const container = document.getElementById('printerListContainer');
+      if (!printers || printers.length === 0) {
+        container.innerHTML =
+          '<div class="text-muted text-center py-3">No printers found on this PC.</div>';
+        return;
+      }
+
+      container.innerHTML = printers.map((p, i) => {
+        const statusClass = p.status === 'Ready' ? 'ready'
+                          : p.status === 'Offline' ? 'offline' : 'busy';
+        const statusIcon  = p.status === 'Ready' ? '●' : p.status === 'Offline' ? '○' : '◌';
+        return `
+          <div class="printer-card" id="pcard_${i}"
+               onclick="selectPrinter(${JSON.stringify(JSON.stringify(p))}, 'pcard_${i}')">
+            <span class="pc-icon"><i class="bi bi-printer-fill"></i></span>
+            <div class="pc-info">
+              <div class="pc-name">
+                ${escapeHtml(p.name)}
+                ${p.is_default ? '<span class="default-badge">DEFAULT</span>' : ''}
+              </div>
+              <div class="pc-status ${statusClass}">${statusIcon} ${escapeHtml(p.status)}</div>
+            </div>
+            <i class="bi bi-check-circle-fill text-primary d-none" id="pcheck_${i}"></i>
+          </div>`;
+      }).join('');
+    }
+
+    /**
+     * Called when admin clicks a printer card.
+     * Stores the selected printer and enables the Next button.
+     */
+    function selectPrinter(printerJsonStr, cardId) {
+      _selectedPrinter = JSON.parse(printerJsonStr);
+
+      // Highlight selected card
+      document.querySelectorAll('.printer-card').forEach(c => {
+        c.classList.remove('selected');
+        const chk = c.querySelector('[id^="pcheck_"]');
+        if (chk) chk.classList.add('d-none');
+      });
+      const card = document.getElementById(cardId);
+      if (card) {
+        card.classList.add('selected');
+        const chk = card.querySelector('[id^="pcheck_"]');
+        if (chk) chk.classList.remove('d-none');
+      }
+
+      document.getElementById('btnSelectPrinter').disabled = false;
+    }
+
+    /** Show only the specified step div. */
+    function showPrintStep(stepId) {
+      ['printStep1', 'printStep2', 'printStep3'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.remove('active'); }
+      });
+      const target = document.getElementById(stepId);
+      if (target) target.classList.add('active');
+    }
+
+    /** Navigate back to Step 1 (optionally re-ping). */
+    function gotoStep1(doPing = true) {
+      showPrintStep('printStep1');
+      _selectedPrinter = null;
+      document.getElementById('btnSelectPrinter').disabled = true;
+      document.querySelectorAll('.printer-card').forEach(c => c.classList.remove('selected'));
+      if (doPing) pingAgentAndLoadPrinters();
+    }
+
+    /**
+     * Navigate to Step 2 — show config summary using the existing order data.
+     * All settings come directly from the cached order object (paper_size, print_mode, copies).
+     * No re-configuration needed.
+     */
+    function gotoStep2() {
+      if (!_selectedPrinter || !_printOrderId) return;
+
+      const order = cachedOrders.find(o => o.id === _printOrderId);
+      if (!order) { showToast('Order data not found.', 'error'); return; }
+
+      // Populate summary
+      document.getElementById('summaryPrinterName').textContent = _selectedPrinter.name;
+      document.getElementById('summaryFileName').textContent    = order.file_name;
+
+      // Build config pills from existing order data (no re-entry needed)
+      const mode   = order.print_mode === 'color' ? 'Color' : 'Black & White';
+      const duplex = 'Duplex OFF';   // stored in order; default OFF unless order has duplex field
+      document.getElementById('configPillsContainer').innerHTML = `
+        <span class="config-pill"><i class="bi bi-file-earmark"></i> ${escapeHtml(order.paper_size || 'A4')}</span>
+        <span class="config-pill"><i class="bi bi-palette"></i> ${mode}</span>
+        <span class="config-pill"><i class="bi bi-files"></i> ${order.copies} ${order.copies > 1 ? 'Copies' : 'Copy'}</span>
+        <span class="config-pill"><i class="bi bi-phone-landscape"></i> Portrait</span>
+        <span class="config-pill"><i class="bi bi-journal-minus"></i> ${duplex}</span>
+      `;
+
+      showPrintStep('printStep2');
+    }
+
+    /**
+     * Submit the print job to the local agent via POST /print.
+     * The agent will download the file from the Smart E-Print backend
+     * and send it directly to the selected Windows printer — no browser dialog.
+     */
+    async function submitPrintJob() {
+      if (!_selectedPrinter || !_printOrderId) return;
+
+      const order = cachedOrders.find(o => o.id === _printOrderId);
+      if (!order) { showToast('Order not found.', 'error'); return; }
+
+      const btn = document.getElementById('btnPrintNow');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending…';
+
+      showPrintStep('printStep3');
+      _updateJobUI({ status: 'queued', message: 'Sending print job to agent…' });
+
+      try {
+        const res = await fetch(`${AGENT_BASE}/print`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Agent-Token': _agentToken,
+          },
+          body: JSON.stringify({
+            order_id:     order.id,
+            order_token:  getToken(),           // admin's JWT — agent uses it to download file
+            printer_name: _selectedPrinter.name,
+            file_name:    order.file_name,
+            copies:       order.copies,
+            print_mode:   order.print_mode || 'bw',
+            paper_size:   order.paper_size || 'A4',
+            orientation:  'portrait',
+            duplex:       false,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Agent rejected the print request.');
+        }
+
+        const { job_id } = await res.json();
+
+        // ── Update order status to Printing on the backend (optimistic) ──
+        updateStatus(_printOrderId, 'Printing');
+
+        // ── Poll /print/{job_id} for status ──────────────────────────────
+        _startPolling(job_id);
+
+      } catch (err) {
+        _updateJobUI({ status: 'failed', message: err.message });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Print Now';
+      }
+    }
+
+    /** Poll the agent every 1.5 s until the job reaches a terminal state. */
+    function _startPolling(jobId) {
+      let progress = 30;
+      _updateJobUI({ status: 'downloading', message: 'Downloading file from server…' });
+
+      _pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${AGENT_BASE}/print/${jobId}`, {
+            headers: { 'X-Agent-Token': _agentToken },
+            signal: AbortSignal.timeout(4000),
+          });
+          if (!res.ok) return;
+          const job = await res.json();
+
+          // Advance progress bar
+          if (job.status === 'downloading') progress = Math.min(progress + 10, 55);
+          if (job.status === 'printing')    progress = Math.min(progress + 15, 85);
+          if (job.status === 'completed')   progress = 100;
+          document.getElementById('jobProgressBar').style.width = progress + '%';
+
+          _updateJobUI(job);
+
+          if (job.status === 'completed' || job.status === 'failed') {
+            clearInterval(_pollInterval);
+            _pollInterval = null;
+            // If completed, show a close button after 2 s
+            if (job.status === 'completed') {
+              setTimeout(() => {
+                const step3 = document.getElementById('printStep3');
+                if (step3 && step3.classList.contains('active')) {
+                  step3.querySelector('.text-center').insertAdjacentHTML('beforeend',
+                    `<div class="mt-3">
+                      <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-check2 me-1"></i>Done
+                      </button>
+                    </div>`
+                  );
+                }
+              }, 1500);
+            }
+          }
+        } catch (_) { /* network blip — keep polling */ }
+      }, 1500);
+    }
+
+    /** Update Step 3 UI based on current job status. */
+    function _updateJobUI(job) {
+      const icons = {
+        queued:      '⏳', downloading: '📥',
+        printing:    '🖨️', completed:   '✅', failed: '❌',
+      };
+      const titles = {
+        queued:      'Job queued…',
+        downloading: 'Downloading document…',
+        printing:    'Printing…',
+        completed:   'Print Job Sent Successfully!',
+        failed:      'Print Failed',
+      };
+      document.getElementById('jobStatusIcon').textContent    = icons[job.status]  || '⏳';
+      document.getElementById('jobStatusTitle').textContent   = titles[job.status] || job.status;
+      document.getElementById('jobStatusMessage').textContent = job.message || '';
     }
   </script>
 </body>
