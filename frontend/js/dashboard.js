@@ -20,13 +20,19 @@ const i18n = {
     // Nav
     edit_picture: "Edit Picture", edit_name: "Edit Name",
     reset_password: "Reset Password", sign_out: "Sign Out",
+    // Modals
+    choose_avatar_color: "Choose a color for your avatar. Your initial will be displayed on the selected color.",
+    save_changes: "Save Changes", current_name_label: "Current Name", new_name_label: "New Name",
+    current_password_label: "Current Password", new_password_label: "New Password",
+    confirm_password_label: "Confirm New Password", pw_hint: "Minimum 6 characters", change_password: "Change Password",
     // Upload View
     new_print_order: "New Print Order", go_to_dashboard: "Go to Dashboard",
     privacy_label: "Privacy:", privacy_text: "Your files are used only to print. After printing they are deleted automatically. We do not keep a copy for admin viewing — only a print receipt (pages / amount) stays for the shop bill.",
     price_list_title: "Price list (₹ per page) · live from shop (one / both sides)",
     th_paper: "Paper", th_bw_one: "B&W one", th_bw_both: "B&W both",
     th_color_one: "Colour one", th_color_both: "Colour both",
-    select_files: "Select Files", upload_hint: "PDF, JPG, PNG · Max 25 MB each",
+    select_files: "Select Files", upload_hint: "Drag & drop files here or click to browse · Max 25 MB each",
+    upload_documents: "Upload Documents",
     // File Config
     print_mode: "Print Mode", color_or_mono: "Color or monochrome",
     bw: "B&W", color: "Color",
@@ -57,12 +63,17 @@ const i18n = {
   hi: {
     edit_picture: "चित्र बदलें", edit_name: "नाम बदलें",
     reset_password: "पासवर्ड रीसेट करें", sign_out: "साइन आउट",
+    choose_avatar_color: "अपने अवतार के लिए एक रंग चुनें। आपका पहला अक्षर चुने गए रंग पर प्रदर्शित होगा।",
+    save_changes: "परिवर्तन सहेजें", current_name_label: "वर्तमान नाम", new_name_label: "नया नाम",
+    current_password_label: "वर्तमान पासवर्ड", new_password_label: "नया पासवर्ड",
+    confirm_password_label: "नया पासवर्ड पुष्टि करें", pw_hint: "न्यूनतम 6 वर्ण", change_password: "पासवर्ड बदलें",
     new_print_order: "नया प्रिंट ऑर्डर", go_to_dashboard: "डैशबोर्ड पर जाएं",
     privacy_label: "गोपनीयता:", privacy_text: "आपकी फ़ाइलें केवल प्रिंट करने के लिए उपयोग की जाती हैं। प्रिंटिंग के बाद वे स्वचालित रूप से हटा दी जाती हैं। हम एडमिन को देखने के लिए कोई कॉपी नहीं रखते — केवल प्रिंट रसीद (पेज / राशि) दुकान के बिल के लिए रहती है।",
     price_list_title: "मूल्य सूची (₹ प्रति पेज) · दुकान से लाइव (एक / दोनों तरफ)",
     th_paper: "कागज़", th_bw_one: "B&W एक", th_bw_both: "B&W दोनों",
     th_color_one: "रंगीन एक", th_color_both: "रंगीन दोनों",
-    select_files: "फ़ाइलें चुनें", upload_hint: "PDF, JPG, PNG · अधिकतम 25 MB प्रत्येक",
+    select_files: "फ़ाइलें चुनें", upload_hint: "फ़ाइलें यहाँ खींचें या ब्राउज़ करें · अधिकतम 25 MB प्रत्येक",
+    upload_documents: "दस्तावेज़ अपलोड करें",
     print_mode: "प्रिंट मोड", color_or_mono: "रंगीन या काला-सफ़ेद",
     bw: "B&W", color: "रंगीन",
     copies: "प्रतियाँ", num_prints: "प्रिंट की संख्या",
@@ -90,12 +101,17 @@ const i18n = {
   gu: {
     edit_picture: "ચિત્ર બદલો", edit_name: "નામ બદલો",
     reset_password: "પાસવર્ડ રીસેટ કરો", sign_out: "સાઇન આઉટ",
+    choose_avatar_color: "તમારા અવતાર માટે રંગ પસંદ કરો. તમારો પહેલો અક્ષર પસંદ કરેલા રંગ પર પ્રદર્શિત થશે.",
+    save_changes: "ફેરફારો સાચવો", current_name_label: "વર્તમાન નામ", new_name_label: "નવું નામ",
+    current_password_label: "વર્તમાન પાસવર્ડ", new_password_label: "નવો પાસવર્ડ",
+    confirm_password_label: "નવા પાસવર્ડની પુષ્ટિ કરો", pw_hint: "ઓછામાં ઓછા 6 અક્ષરો", change_password: "પાસવર્ડ બદલો",
     new_print_order: "નવો પ્રિન્ટ ઓર્ડર", go_to_dashboard: "ડેશબોર્ડ પર જાઓ",
     privacy_label: "ગોપનીયતા:", privacy_text: "તમારી ફાઈલો ફક્ત પ્રિન્ટ કરવા માટે વપરાય છે. પ્રિન્ટિંગ પછી તે આપમેળે ડિલીટ થઈ જાય છે. અમે એડમિન જોવા માટે કોઈ કૉપી રાખતા નથી — ફક્ત પ્રિન્ટ રસીદ (પેજ / રકમ) દુકાનના બિલ માટે રહે છે.",
     price_list_title: "કિંમત યાદી (₹ પ્રતિ પેજ) · દુકાનમાંથી લાઇવ (એક / બંને બાજુ)",
     th_paper: "કાગળ", th_bw_one: "B&W એક", th_bw_both: "B&W બંને",
     th_color_one: "રંગીન એક", th_color_both: "રંગીન બંને",
-    select_files: "ફાઈલો પસંદ કરો", upload_hint: "PDF, JPG, PNG · મહત્તમ 25 MB દરેક",
+    select_files: "ફાઈલો પસંદ કરો", upload_hint: "ફાઈલો અહીં ખેંચો અથવા બ્રાઉઝ કરો · મહત્તમ 25 MB દરેક",
+    upload_documents: "દસ્તાવેજો અપલોડ કરો",
     print_mode: "પ્રિન્ટ મોડ", color_or_mono: "રંગીન અથવા કાળા-સફેદ",
     bw: "B&W", color: "રંગીન",
     copies: "નકલો", num_prints: "પ્રિન્ટની સંખ્યા",
@@ -153,6 +169,7 @@ async function initDashboard(requiredRole) {
 
   setupNavControls();
   setupUploadZone();
+  setupProfileModals();
   loadCustomerOrders();
   return user;
 }
@@ -185,7 +202,6 @@ function setupNavControls() {
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       applyLanguage(e.target.dataset.lang);
-      if (typeof showToast === 'function') showToast(`Language → ${e.target.dataset.lang.toUpperCase()}`);
     });
   });
 
@@ -226,7 +242,22 @@ function switchView(viewName) {
    ═══════════════════════════════════════════════════════════════ */
 function setupUploadZone() {
   const fileInput = document.getElementById('mainFileInput');
-  if (!fileInput) return;
+  const dropzone = document.getElementById('mainUploadDropzone');
+  if (!fileInput || !dropzone) return;
+
+  // Drag-and-drop visual feedback
+  dropzone.addEventListener('dragenter', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('drag-over'); });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+  });
+
   fileInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     for (const file of files) {
@@ -238,8 +269,27 @@ function setupUploadZone() {
       });
     }
     fileInput.value = '';
+    renderUploadedFilesList();
     renderFileConfigs();
   });
+}
+
+function renderUploadedFilesList() {
+  const listEl = document.getElementById('uploadedFilesList');
+  if (!listEl) return;
+  if (uploadedFiles.length === 0) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = uploadedFiles.map(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const icon = ext === 'pdf' ? 'bi-file-earmark-pdf' : 'bi-file-earmark-image';
+    return `<div class="uploaded-file-item">
+      <div class="ufi-icon"><i class="bi ${icon}"></i></div>
+      <div class="ufi-info">
+        <span class="ufi-name">${esc(f.name)}</span>
+        <span class="ufi-meta">${f.pages} pg · ${fmtBytes(f.size)}</span>
+      </div>
+      <i class="bi bi-check-circle-fill ufi-check"></i>
+    </div>`;
+  }).join('');
 }
 
 function getPageCount(file) {
@@ -334,7 +384,7 @@ function renderFileConfigs() {
   updateCheckoutSummary();
 }
 
-function removeFile(id) { uploadedFiles = uploadedFiles.filter(f => f.id !== id); renderFileConfigs(); }
+function removeFile(id) { uploadedFiles = uploadedFiles.filter(f => f.id !== id); renderUploadedFilesList(); renderFileConfigs(); }
 
 function updateFile(id, key, val) {
   const f = uploadedFiles.find(x => x.id === id);
@@ -432,7 +482,7 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
     for (const file of uploadedFiles) {
       const fd = new FormData();
       fd.append('file', file.fileObj);
-      fd.append('print_mode', file.mode);
+      fd.append('print_mode', file.mode.startsWith('color') ? 'color' : 'bw');
       fd.append('copies', file.copies);
       fd.append('paper_size', file.paperSize);
       fd.append('payment_method', currentPaymentMethod);
@@ -444,9 +494,12 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
       if (!res.ok) throw new Error(`Failed: ${file.name}`);
     }
     showToast('Order submitted!', 'success');
-    uploadedFiles = []; renderFileConfigs();
+    uploadedFiles = []; fileCounter = 0;
+    renderUploadedFilesList();
+    renderFileConfigs();
     document.getElementById('mainFileInput').value = '';
-    switchView('dashboard');
+    // Small delay to ensure DOM updates before view switch
+    setTimeout(() => switchView('dashboard'), 150);
   } catch(err) { showToast(err.message || 'Network error.', 'error'); }
 }
 
@@ -491,17 +544,225 @@ async function loadCustomerOrders() {
 async function cancelOrder(id) {
   if (!confirm('Cancel this order?')) return;
   try {
-    const res = await fetch(`${CONFIG.API_BASE}/orders/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-      body: JSON.stringify({ status: 'Rejected', rejection_reason: 'Cancelled by customer' })
+    const res = await fetch(`${CONFIG.API_BASE}/orders/${id}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` }
     });
-    if (res.ok) { showToast('Cancelled', 'success'); loadCustomerOrders(); }
-    else throw new Error();
+    const data = await res.json();
+    if (res.ok) { showToast(data.message || 'Order cancelled.', 'success'); loadCustomerOrders(); }
+    else { showToast(data.error || 'Failed to cancel.', 'error'); }
   } catch(e) { showToast('Failed to cancel.', 'error'); }
 }
 
 function esc(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Profile Modals — Edit Picture, Edit Name, Reset Password
+   ═══════════════════════════════════════════════════════════════ */
+
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #06B6D4, #10B981)',
+  'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+  'linear-gradient(135deg, #F59E0B, #EF4444)',
+  'linear-gradient(135deg, #EC4899, #8B5CF6)',
+  'linear-gradient(135deg, #10B981, #059669)',
+  'linear-gradient(135deg, #6366F1, #3B82F6)',
+  'linear-gradient(135deg, #F97316, #F59E0B)',
+  'linear-gradient(135deg, #EF4444, #DC2626)',
+  'linear-gradient(135deg, #14B8A6, #06B6D4)',
+  'linear-gradient(135deg, #A855F7, #EC4899)',
+  'linear-gradient(135deg, #84CC16, #22C55E)',
+  'linear-gradient(135deg, #0EA5E9, #2563EB)',
+];
+
+let selectedAvatarColor = localStorage.getItem('sep_avatar_color') || AVATAR_COLORS[0];
+
+function openModal(id) {
+  document.getElementById('profileMenu').classList.remove('show');
+  document.getElementById(id).classList.add('show');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+// Close modal on backdrop click
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('show');
+  }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+/* ── Avatar Color Picker ──────────────────────────────── */
+function initAvatarColorGrid() {
+  const grid = document.getElementById('avatarColorGrid');
+  if (!grid) return;
+  grid.innerHTML = AVATAR_COLORS.map((color, i) => {
+    const active = color === selectedAvatarColor ? 'active' : '';
+    return `<div class="color-swatch ${active}" style="background:${color};" data-color-index="${i}" onclick="selectAvatarColor(${i})"></div>`;
+  }).join('');
+}
+
+function selectAvatarColor(index) {
+  selectedAvatarColor = AVATAR_COLORS[index];
+  const preview = document.getElementById('avatarPreview');
+  if (preview) preview.style.background = selectedAvatarColor;
+  document.querySelectorAll('.color-swatch').forEach((s, i) => {
+    s.classList.toggle('active', i === index);
+  });
+}
+
+function applyAvatarColor() {
+  localStorage.setItem('sep_avatar_color', selectedAvatarColor);
+  const navAvatar = document.getElementById('navAvatar');
+  if (navAvatar) navAvatar.style.background = selectedAvatarColor;
+}
+
+function loadSavedAvatarColor() {
+  const saved = localStorage.getItem('sep_avatar_color');
+  if (saved) {
+    selectedAvatarColor = saved;
+    const navAvatar = document.getElementById('navAvatar');
+    if (navAvatar) navAvatar.style.background = saved;
+  }
+}
+
+/* ── Edit Name ────────────────────────────────────────── */
+async function saveNewName() {
+  const newName = document.getElementById('newNameInput').value.trim();
+  if (!newName || newName.length < 2) {
+    showToast('Name must be at least 2 characters.', 'error');
+    return;
+  }
+  const btn = document.getElementById('saveNameBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/auth/profile/name`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ name: newName })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('navUserName').textContent = newName;
+      document.getElementById('navAvatar').textContent = newName.charAt(0).toUpperCase();
+      document.getElementById('avatarPreview').textContent = newName.charAt(0).toUpperCase();
+      const savedUser = JSON.parse(localStorage.getItem(CONFIG.USER_KEY) || '{}');
+      savedUser.name = newName;
+      localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(savedUser));
+      closeModal('modalEditName');
+    } else {
+      showToast(data.error || 'Failed to update name.', 'error');
+    }
+  } catch(e) {
+    showToast('Network error. Please try again.', 'error');
+  }
+  btn.disabled = false;
+}
+
+/* ── Reset Password ───────────────────────────────────── */
+async function saveNewPassword() {
+  const currentPw = document.getElementById('currentPwInput').value;
+  const newPw = document.getElementById('newPwInput').value;
+  const confirmPw = document.getElementById('confirmPwInput').value;
+
+  if (!currentPw) { showToast('Enter your current password.', 'error'); return; }
+  if (!newPw || newPw.length < 6) { showToast('New password must be at least 6 characters.', 'error'); return; }
+  if (newPw !== confirmPw) { showToast('New passwords do not match.', 'error'); return; }
+
+  const btn = document.getElementById('savePwBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/auth/profile/password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ current_password: currentPw, new_password: newPw, confirm_password: confirmPw })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('currentPwInput').value = '';
+      document.getElementById('newPwInput').value = '';
+      document.getElementById('confirmPwInput').value = '';
+      closeModal('modalResetPassword');
+    } else {
+      showToast(data.error || 'Failed to change password.', 'error');
+    }
+  } catch(e) {
+    showToast('Network error. Please try again.', 'error');
+  }
+  btn.disabled = false;
+}
+
+/* ── Wire up dropdown → modals ────────────────────────── */
+function setupProfileModals() {
+  const editPicBtn = document.getElementById('editPictureBtn');
+  if (editPicBtn) {
+    editPicBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      initAvatarColorGrid();
+      const userName = document.getElementById('navUserName')?.textContent || 'C';
+      const preview = document.getElementById('avatarPreview');
+      if (preview) {
+        preview.textContent = userName.charAt(0).toUpperCase();
+        preview.style.background = selectedAvatarColor;
+      }
+      openModal('modalEditPicture');
+    });
+  }
+
+  const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+  if (saveAvatarBtn) {
+    saveAvatarBtn.addEventListener('click', () => {
+      applyAvatarColor();
+      closeModal('modalEditPicture');
+    });
+  }
+
+  const editNameBtn = document.getElementById('editNameBtn');
+  if (editNameBtn) {
+    editNameBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const currentName = document.getElementById('navUserName')?.textContent || '';
+      document.getElementById('currentNameDisplay').value = currentName;
+      document.getElementById('newNameInput').value = '';
+      openModal('modalEditName');
+      setTimeout(() => document.getElementById('newNameInput').focus(), 100);
+    });
+  }
+
+  const saveNameBtn = document.getElementById('saveNameBtn');
+  if (saveNameBtn) saveNameBtn.addEventListener('click', saveNewName);
+
+  const newNameInput = document.getElementById('newNameInput');
+  if (newNameInput) newNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNewName(); });
+
+  const resetPwBtn = document.getElementById('resetPasswordBtn');
+  if (resetPwBtn) {
+    resetPwBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('currentPwInput').value = '';
+      document.getElementById('newPwInput').value = '';
+      document.getElementById('confirmPwInput').value = '';
+      openModal('modalResetPassword');
+      setTimeout(() => document.getElementById('currentPwInput').focus(), 100);
+    });
+  }
+
+  const savePwBtn = document.getElementById('savePwBtn');
+  if (savePwBtn) savePwBtn.addEventListener('click', saveNewPassword);
+
+  const confirmPwInput = document.getElementById('confirmPwInput');
+  if (confirmPwInput) confirmPwInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNewPassword(); });
+
+  loadSavedAvatarColor();
 }

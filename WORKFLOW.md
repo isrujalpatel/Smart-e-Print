@@ -29,33 +29,85 @@ This document outlines the end-to-end technical and operational workflows for th
 The platform follows a modern client-server architecture. It utilizes a lightweight Frontend communicating via REST API with a secure Backend, backed by a robust Cloud Database.
 
 ```mermaid
-graph TD
-    subgraph Client Tier
-        C[Customer Portal]
-        O[Admin Dashboard]
+graph TB
+    subgraph CLIENT["🖥️ CLIENT LAYER"]
+        CU["👤 Customer<br/>Portal"]
+        AU["👨💼 Admin<br/>Dashboard"]
     end
-
-    subgraph API Gateway & Logic Tier
-        API[Backend REST API]
-        Auth[JWT Authentication Service]
-        Parse[PDF & Image Parsing Engine]
-        Price[Dynamic Pricing Engine]
-    end
-
-    subgraph Data Tier
-        DB[(Supabase PostgreSQL)]
-        Storage[(Document Blob Storage)]
-    end
-
-    C -->|HTTP Requests / Real-time Sync| API
-    O -->|HTTP Requests / Real-time Sync| API
     
-    API <--> Auth
-    API <--> Parse
-    API <--> Price
+    subgraph ROUTES["🔗 ROUTE HANDLERS"]
+        R1["📤 Upload Files"]
+        R2["📦 Place Order"]
+        R3["📍 Track Order"]
+        R4["🔓 Login"]
+        R5["🚪 Logout"]
+        R6["📊 View Analytics"]
+    end
     
-    API <-->|SQL Queries| DB
-    API <-->|File Stream| Storage
+    subgraph SERVER["⚙️ APPLICATION SERVER"]
+        OS["📦 Order<br/>Service"]
+        AUTH["🔐 Authentication<br/>Service"]
+        ANALYTICS["📊 Analytics<br/>Engine"]
+        NF["📧 Notify File<br/>Service"]
+        CALC_PRICE["💰 Calculate<br/>Price"]
+        FM["📄 File<br/>Management"]
+        PC["💲 Price<br/>Calculator"]
+    end
+    
+    subgraph EXTERNAL["🌐 EXTERNAL INTEGRATIONS"]
+        EMAIL["📧 Email<br/>Service"]
+        PAYMENT["💳 Payment<br/>Gateway"]
+    end
+    
+    subgraph DB["💾 DATABASE LAYER"]
+        DOCS["📑 Documents"]
+        USERS["👥 Users &<br/>Profiles"]
+        RATES["💹 Rate<br/>Cards"]
+        ORDERS["📦 Orders &<br/>History"]
+    end
+    
+    CU --> R1
+    CU --> R2
+    CU --> R3
+    AU --> R4
+    AU --> R5
+    AU --> R6
+    
+    R1 --> FM
+    R2 --> OS
+    R3 --> OS
+    R4 --> AUTH
+    R5 --> AUTH
+    R6 --> ANALYTICS
+    
+    OS --> AUTH
+    OS --> CALC_PRICE
+    OS --> NF
+    OS --> FM
+    CALC_PRICE --> PC
+    PC --> CALC_PRICE
+    ANALYTICS --> OS
+    FM --> NF
+    
+    OS --> PAYMENT
+    NF --> EMAIL
+    
+    FM --> DOCS
+    AUTH --> USERS
+    CALC_PRICE --> RATES
+    OS --> ORDERS
+    ANALYTICS --> ORDERS
+    ANALYTICS --> USERS
+    PC --> RATES
+    
+    ORDERS --> USERS
+    ORDERS --> DOCS
+    
+    style CLIENT fill:#0066cc,stroke:#00d4ff,stroke-width:2px,color:#fff
+    style ROUTES fill:#003366,stroke:#00d4ff,stroke-width:2px,color:#fff
+    style SERVER fill:#1a1a3e,stroke:#00d4ff,stroke-width:2px,color:#fff
+    style EXTERNAL fill:#663300,stroke:#ffaa00,stroke-width:2px,color:#fff
+    style DB fill:#330033,stroke:#ff00ff,stroke-width:2px,color:#fff
 ```
 
 ---

@@ -290,6 +290,42 @@ def download_order_file(current_user, order_id):
         mimetype=order.mime_type
     )
 
+# ── POST /api/orders/<order_id>/cancel ────────────────────────────────────────
+@orders_bp.route('/<order_id>/cancel', methods=['POST'])
+@token_required
+def cancel_order(current_user, order_id):
+    """Allow customer to cancel their own order (only if Submitted or Accepted)."""
+    order = db.session.get(PrintOrder, order_id)
+    if not order:
+        return jsonify({"error": "Order not found."}), 404
+
+    # Customers can only cancel their own orders
+    if current_user.role == 'customer' and order.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized."}), 403
+
+    if order.status not in {'Submitted', 'Accepted'}:
+        return jsonify({"error": f"Cannot cancel order with status '{order.status}'."}), 400
+
+    old_status = order.status
+    order.status = 'Rejected'
+    order.rejection_reason = 'Cancelled by customer'
+    order.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    AuditLog.log(
+        action="ORDER_CANCELLED",
+        user=current_user,
+        details=f"Customer cancelled order {order.id[:8]} (was '{old_status}')",
+        ip_address=ip_addr,
+    )
+
+    return jsonify({
+        "message": "Order cancelled successfully.",
+        "order": order.to_dict()
+    }), 200
+
+
 # ── PATCH /api/orders/<order_id>/status ──────────────────────────────────────
 @orders_bp.route('/<order_id>/status', methods=['PATCH'])
 @role_required('admin', 'super_admin')

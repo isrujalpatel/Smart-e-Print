@@ -172,6 +172,14 @@
     }
     .btn-modern:hover { background: var(--bg-input); transform: translateY(-1px); }
     .btn-modern i { color: var(--accent); }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .btn-new-order {
+      width: auto; margin: 0; padding: 7px 14px; font-size: .85rem;
+      border: none; border-radius: 8px; background: var(--accent); color: #fff;
+      font-weight: 600; cursor: pointer; transition: opacity .2s;
+      display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm);
+    }
+    .btn-new-order:hover { opacity: .9; }
 
     /* ── Info Section ────────────────────────────────── */
     .info-section {
@@ -184,17 +192,157 @@
     .price-table th { background: var(--bg-input); color: var(--text-muted); font-weight: 600; }
 
     /* ── Upload Zone ─────────────────────────────────── */
-    .upload-zone {
-      background: var(--bg-card); border: 2px dashed var(--hairline);
-      border-radius: var(--radius); padding: 32px 16px;
-      text-align: center; cursor: pointer;
-      transition: border-color .2s, background .2s;
+    .upload-section {
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      padding: 20px;
       margin-bottom: 20px;
     }
-    .upload-zone:hover { border-color: var(--accent); background: var(--accent-soft); }
-    .upload-zone i { font-size: 2rem; color: var(--accent); }
-    .upload-zone .uz-title { font-weight: 700; font-size: .95rem; margin: 8px 0 4px; color: var(--text-primary); }
-    .upload-zone .uz-sub { font-size: .78rem; color: var(--text-muted); }
+    .upload-section-title {
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .upload-section-title i {
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    .upload-zone {
+      background: var(--bg-input);
+      border: 2px dashed var(--hairline);
+      border-radius: 10px;
+      padding: 36px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .25s, background .25s, transform .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 40%, var(--accent-soft) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    .upload-zone:hover::before,
+    .upload-zone.drag-over::before {
+      opacity: 1;
+    }
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .upload-zone.drag-over {
+      background: var(--accent-soft);
+    }
+
+    .uz-icon-wrap {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      position: relative;
+    }
+    .uz-icon-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px dashed var(--accent);
+      opacity: .3;
+      animation: uz-spin 12s linear infinite;
+    }
+    @keyframes uz-spin { to { transform: rotate(360deg); } }
+    .uz-icon-wrap i {
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+
+    .upload-zone .uz-title {
+      font-weight: 700; font-size: .92rem;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .upload-zone .uz-sub {
+      font-size: .76rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .uz-formats {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .uz-format-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: .68rem;
+      font-weight: 600;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border: 1px solid var(--hairline);
+    }
+    .uz-format-badge i { font-size: .7rem; }
+    .uz-format-badge.pdf { color: #ef4444; }
+    .uz-format-badge.img { color: #3b82f6; }
+
+    /* Uploaded file list below the drop zone */
+    .uploaded-files-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .uploaded-file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .8rem;
+      animation: fadeSlideIn .3s ease;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .uploaded-file-item .ufi-icon {
+      width: 32px; height: 32px; border-radius: 6px;
+      background: var(--accent-soft);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .uploaded-file-item .ufi-icon i { font-size: .9rem; color: var(--accent); }
+    .uploaded-file-item .ufi-info { flex: 1; min-width: 0; }
+    .uploaded-file-item .ufi-name {
+      font-weight: 600; color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: block;
+    }
+    .uploaded-file-item .ufi-meta {
+      font-size: .7rem; color: var(--text-muted);
+    }
+    .uploaded-file-item .ufi-check {
+      color: var(--success); font-size: 1rem;
+    }
 
     /* ── File Config Box ─────────────────────────────── */
     .file-config-container { display: flex; flex-direction: column; gap: 14px; }
@@ -355,6 +503,185 @@
       display: flex; flex-direction: column; gap: 8px;
     }
 
+    /* ── Modal Dialog ───────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: modalFadeIn .2s ease;
+    }
+    .modal-overlay.show { display: flex; }
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      width: 100%;
+      max-width: 420px;
+      animation: modalSlideUp .25s ease;
+      overflow: hidden;
+    }
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .modal-header h5 {
+      margin: 0;
+      font-size: .95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-header h5 i {
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      padding: 4px;
+      border-radius: 6px;
+      transition: background .15s, color .15s;
+    }
+    .modal-close:hover {
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    /* Modal form inputs */
+    .modal-input-group {
+      margin-bottom: 14px;
+    }
+    .modal-input-group label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: .85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .modal-input:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-modal {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-modal-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-modal-primary:hover { opacity: .9; }
+    .btn-modal-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+    .btn-modal-secondary {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--hairline);
+    }
+    .btn-modal-secondary:hover { background: var(--bg-body); }
+
+    /* Avatar color picker grid */
+    .avatar-preview-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .avatar-preview-large {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .avatar-preview-info {
+      flex: 1;
+      font-size: .82rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+    .color-swatch {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform .15s, border-color .15s;
+    }
+    .color-swatch:hover {
+      transform: scale(1.15);
+    }
+    .color-swatch.active {
+      border-color: var(--text-primary);
+      transform: scale(1.1);
+    }
+
+    /* Password strength hint */
+    .pw-hint {
+      font-size: .72rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
     /* ── ≤768px (Tablet + Phone) ─────────────────────── */
     @media (max-width: 768px) {
       .page-wrap { padding: 12px 10px; }
@@ -373,7 +700,7 @@
       /* Section headers: full width stacked */
       .section-header {
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-start;
         gap: 10px;
       }
       .section-header h4 {
@@ -381,7 +708,10 @@
         word-wrap: break-word;
         overflow-wrap: break-word;
       }
-      .btn-modern { justify-content: center; width: 100%; }
+      .header-actions { width: 100%; flex-direction: row; }
+      .header-actions .btn-modern, .header-actions .btn-new-order {
+        flex: 1; justify-content: center; width: auto;
+      }
 
       /* Info */
       .info-section { padding: 12px; font-size: .82rem; }
@@ -390,9 +720,11 @@
       .price-table th, .price-table td { padding: 5px 6px; }
 
       /* Upload zone */
+      .upload-section { padding: 14px; }
       .upload-zone { padding: 24px 12px; }
-      .upload-zone i { font-size: 1.6rem; }
-      .upload-zone .uz-title { font-size: .88rem; }
+      .uz-icon-wrap { width: 48px; height: 48px; }
+      .uz-icon-wrap i { font-size: 1.3rem; }
+      .upload-zone .uz-title { font-size: .85rem; }
 
       /* File configs — vertical stack (like SS3 which is perfect) */
       .file-config-box { padding: 12px; }
@@ -457,10 +789,19 @@
       .price-table th, .price-table td { padding: 4px 5px; }
 
       /* Upload */
-      .upload-zone { padding: 20px 10px; margin-bottom: 14px; }
-      .upload-zone i { font-size: 1.4rem; }
+      .upload-section { padding: 12px; }
+      .upload-zone { padding: 20px 10px; }
+      .uz-icon-wrap { width: 42px; height: 42px; margin-bottom: 8px; }
+      .uz-icon-wrap i { font-size: 1.1rem; }
+      .uz-icon-wrap::after { inset: -3px; }
       .upload-zone .uz-title { font-size: .82rem; margin: 6px 0 2px; }
-      .upload-zone .uz-sub { font-size: .72rem; }
+      .upload-zone .uz-sub { font-size: .72rem; margin-bottom: 8px; }
+      .uz-format-badge { font-size: .62rem; padding: 2px 8px; }
+      .uploaded-file-item { padding: 6px 10px; }
+      .uploaded-file-item .ufi-icon { width: 26px; height: 26px; }
+      .uploaded-file-item .ufi-icon i { font-size: .75rem; }
+      .uploaded-file-item .ufi-name { font-size: .75rem; }
+      .uploaded-file-item .ufi-meta { font-size: .65rem; }
 
       /* File configs */
       .file-config-box { padding: 10px; }
@@ -499,6 +840,7 @@
       .lang-btn { padding: 3px 6px; font-size: .68rem; }
       .section-header h4 { font-size: .9rem; }
       .info-section { font-size: .74rem; padding: 8px; }
+      .upload-section { padding: 10px; }
       .upload-zone { padding: 16px 8px; }
     }
   </style>
@@ -528,9 +870,9 @@
           <i class="bi bi-chevron-down" style="font-size:.6rem;color:var(--text-muted);"></i>
         </div>
         <div class="dropdown-menu-custom" id="profileMenu">
-          <a href="#" class="dropdown-item-custom"><i class="bi bi-image"></i> <span data-i18n="edit_picture">Edit Picture</span></a>
-          <a href="#" class="dropdown-item-custom"><i class="bi bi-person"></i> <span data-i18n="edit_name">Edit Name</span></a>
-          <a href="#" class="dropdown-item-custom"><i class="bi bi-key"></i> <span data-i18n="reset_password">Reset Password</span></a>
+          <a href="#" class="dropdown-item-custom" id="editPictureBtn"><i class="bi bi-image"></i> <span data-i18n="edit_picture">Edit Picture</span></a>
+          <a href="#" class="dropdown-item-custom" id="editNameBtn"><i class="bi bi-person"></i> <span data-i18n="edit_name">Edit Name</span></a>
+          <a href="#" class="dropdown-item-custom" id="resetPasswordBtn"><i class="bi bi-key"></i> <span data-i18n="reset_password">Reset Password</span></a>
           <hr style="margin:4px 0;border-color:var(--hairline);">
           <a href="#" class="dropdown-item-custom text-danger" id="signOutBtn"><i class="bi bi-box-arrow-right"></i> <span data-i18n="sign_out">Sign Out</span></a>
         </div>
@@ -571,13 +913,30 @@
         </div>
       </div>
 
-      <!-- Upload -->
-      <label for="mainFileInput" class="upload-zone" id="mainUploadDropzone">
-        <i class="bi bi-cloud-arrow-up"></i>
-        <div class="uz-title" data-i18n="select_files">Select Files</div>
-        <div class="uz-sub" data-i18n="upload_hint">PDF, JPG, PNG · Max 25 MB each</div>
-      </label>
-      <input type="file" id="mainFileInput" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple style="display:none;" />
+      <!-- Upload Section -->
+      <div class="upload-section">
+        <div class="upload-section-title">
+          <i class="bi bi-upload"></i>
+          <span data-i18n="upload_documents">Upload Documents</span>
+        </div>
+
+        <label for="mainFileInput" class="upload-zone" id="mainUploadDropzone">
+          <div class="uz-icon-wrap">
+            <i class="bi bi-cloud-arrow-up"></i>
+          </div>
+          <div class="uz-title" data-i18n="select_files">Select Files</div>
+          <div class="uz-sub" data-i18n="upload_hint">Drag & drop files here or click to browse · Max 25 MB each</div>
+          <div class="uz-formats">
+            <span class="uz-format-badge pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</span>
+            <span class="uz-format-badge img"><i class="bi bi-file-earmark-image"></i> JPG</span>
+            <span class="uz-format-badge img"><i class="bi bi-file-earmark-image"></i> PNG</span>
+          </div>
+        </label>
+        <input type="file" id="mainFileInput" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple style="display:none;" />
+
+        <!-- Uploaded files summary list -->
+        <div id="uploadedFilesList" class="uploaded-files-list"></div>
+      </div>
 
       <!-- File Configs -->
       <div id="fileConfigContainer" class="file-config-container"></div>
@@ -647,9 +1006,9 @@
           <h4 data-i18n="your_orders">Your Print Orders & Tracking</h4>
           <p style="margin:0;font-size:.82rem;color:var(--text-muted);" data-i18n="track_status">Track real-time status of your documents</p>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div class="header-actions">
           <button class="btn-modern" onclick="loadCustomerOrders()"><i class="bi bi-arrow-clockwise"></i> <span data-i18n="refresh">Refresh</span></button>
-          <button class="btn-submit" style="width:auto;margin:0;padding:8px 14px;font-size:.82rem;" onclick="switchView('upload')"><i class="bi bi-plus-lg"></i> <span data-i18n="new_order">New Order</span></button>
+          <button class="btn-new-order" onclick="switchView('upload')"><i class="bi bi-plus-lg"></i> <span data-i18n="new_order">New Order</span></button>
         </div>
       </div>
 
@@ -675,6 +1034,82 @@
     </div><!-- /#dashboardView -->
 
   </div><!-- /.page-wrap -->
+
+  <!-- ═══ MODAL: Edit Picture ═══ -->
+  <div class="modal-overlay" id="modalEditPicture">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h5><i class="bi bi-image"></i> <span data-i18n="edit_picture">Edit Picture</span></h5>
+        <button class="modal-close" onclick="closeModal('modalEditPicture')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="avatar-preview-row">
+          <div class="avatar-preview-large" id="avatarPreview" style="background:linear-gradient(135deg,#06B6D4,#10B981);">C</div>
+          <div class="avatar-preview-info">
+            <span data-i18n="choose_avatar_color">Choose a color for your avatar. Your initial will be displayed on the selected color.</span>
+          </div>
+        </div>
+        <div class="color-grid" id="avatarColorGrid"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal btn-modal-secondary" onclick="closeModal('modalEditPicture')" data-i18n="cancel">Cancel</button>
+        <button class="btn-modal btn-modal-primary" id="saveAvatarBtn" data-i18n="save_changes">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: Edit Name ═══ -->
+  <div class="modal-overlay" id="modalEditName">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h5><i class="bi bi-person"></i> <span data-i18n="edit_name">Edit Name</span></h5>
+        <button class="modal-close" onclick="closeModal('modalEditName')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-input-group">
+          <label data-i18n="current_name_label">Current Name</label>
+          <input type="text" class="modal-input" id="currentNameDisplay" disabled />
+        </div>
+        <div class="modal-input-group">
+          <label data-i18n="new_name_label">New Name</label>
+          <input type="text" class="modal-input" id="newNameInput" placeholder="Enter new name" maxlength="100" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal btn-modal-secondary" onclick="closeModal('modalEditName')" data-i18n="cancel">Cancel</button>
+        <button class="btn-modal btn-modal-primary" id="saveNameBtn" data-i18n="save_changes">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: Reset Password ═══ -->
+  <div class="modal-overlay" id="modalResetPassword">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h5><i class="bi bi-key"></i> <span data-i18n="reset_password">Reset Password</span></h5>
+        <button class="modal-close" onclick="closeModal('modalResetPassword')"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-input-group">
+          <label data-i18n="current_password_label">Current Password</label>
+          <input type="password" class="modal-input" id="currentPwInput" placeholder="Enter current password" />
+        </div>
+        <div class="modal-input-group">
+          <label data-i18n="new_password_label">New Password</label>
+          <input type="password" class="modal-input" id="newPwInput" placeholder="Enter new password" />
+          <div class="pw-hint" data-i18n="pw_hint">Minimum 6 characters</div>
+        </div>
+        <div class="modal-input-group">
+          <label data-i18n="confirm_password_label">Confirm New Password</label>
+          <input type="password" class="modal-input" id="confirmPwInput" placeholder="Re-enter new password" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal btn-modal-secondary" onclick="closeModal('modalResetPassword')" data-i18n="cancel">Cancel</button>
+        <button class="btn-modal btn-modal-primary" id="savePwBtn" data-i18n="change_password">Change Password</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

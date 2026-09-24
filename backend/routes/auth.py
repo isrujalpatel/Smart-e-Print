@@ -132,6 +132,80 @@ def get_me(current_user):
     return jsonify({"user": current_user.to_dict()}), 200
 
 
+# ── PATCH /api/auth/profile/name ─────────────────────────────────────────────
+@auth_bp.route("/profile/name", methods=["PATCH"])
+@token_required
+def update_name(current_user):
+    """Update the current user's display name."""
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Request body must be JSON."}), 400
+
+    new_name = str(data.get("name", "")).strip()
+    if not new_name or len(new_name) < 2:
+        return jsonify({"error": "Name must be at least 2 characters."}), 400
+    if len(new_name) > 100:
+        return jsonify({"error": "Name must be 100 characters or fewer."}), 400
+
+    old_name = current_user.name
+    current_user.name = new_name
+    db.session.commit()
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    AuditLog.log(
+        action="PROFILE_NAME_UPDATED",
+        user=current_user,
+        details=f"Name changed from '{old_name}' to '{new_name}'",
+        ip_address=ip_addr,
+    )
+
+    return jsonify({
+        "message": "Name updated successfully.",
+        "user": current_user.to_dict()
+    }), 200
+
+
+# ── POST /api/auth/profile/password ──────────────────────────────────────────
+@auth_bp.route("/profile/password", methods=["POST"])
+@token_required
+def change_password(current_user):
+    """Change the current user's password (requires current password)."""
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Request body must be JSON."}), 400
+
+    current_pw = str(data.get("current_password", ""))
+    new_pw = str(data.get("new_password", ""))
+    confirm_pw = str(data.get("confirm_password", ""))
+
+    if not current_pw:
+        return jsonify({"error": "Current password is required."}), 400
+    if not new_pw or len(new_pw) < 6:
+        return jsonify({"error": "New password must be at least 6 characters."}), 400
+    if new_pw != confirm_pw:
+        return jsonify({"error": "New passwords do not match."}), 400
+
+    # Google-only users don't have a password
+    if not current_user.password_hash:
+        return jsonify({"error": "Your account uses Google sign-in and has no password to change."}), 400
+
+    if not bcrypt.check_password_hash(current_user.password_hash, current_pw):
+        return jsonify({"error": "Current password is incorrect."}), 401
+
+    current_user.password_hash = bcrypt.generate_password_hash(new_pw).decode("utf-8")
+    db.session.commit()
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    AuditLog.log(
+        action="PASSWORD_CHANGED",
+        user=current_user,
+        details="User changed their password",
+        ip_address=ip_addr,
+    )
+
+    return jsonify({"message": "Password changed successfully."}), 200
+
+
 # ── POST /api/auth/logout ────────────────────────────────────────────────────
 @auth_bp.route("/logout", methods=["POST"])
 @token_required
