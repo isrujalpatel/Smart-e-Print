@@ -381,6 +381,20 @@
       }
     }
 
+    function updateStatsFromCache() {
+      // Compute stats from in-memory cachedOrders — instant, no network
+      const submitted  = cachedOrders.filter(o => o.status === 'Submitted').length;
+      const printing   = cachedOrders.filter(o => o.status === 'Printing').length;
+      const completed  = cachedOrders.filter(o => o.status === 'Completed').length;
+      const revenue    = cachedOrders
+        .filter(o => ['Accepted','Printing','Completed'].includes(o.status))
+        .reduce((sum, o) => sum + (o.total_price || 0), 0);
+      document.getElementById('statPending').textContent   = submitted;
+      document.getElementById('statPrinting').textContent  = printing;
+      document.getElementById('statCompleted').textContent = completed;
+      document.getElementById('statRevenue').textContent   = `₹${revenue.toFixed(2)}`;
+    }
+
     async function loadRatesToModal() {
       const { ok, data } = await apiCall('/shop/rates', 'GET');
       if (ok && data) {
@@ -522,13 +536,28 @@
     }
 
     async function updateStatus(orderId, newStatus) {
+      // ── Optimistic update: mutate cachedOrders & re-render instantly ──
+      const orderIdx = cachedOrders.findIndex(o => o.id === orderId);
+      if (orderIdx === -1) return;
+      const prevOrder = { ...cachedOrders[orderIdx] };           // snapshot for rollback
+      cachedOrders[orderIdx] = { ...prevOrder, status: newStatus, rejection_reason: null };
+      renderOrdersTable(cachedOrders);
+      updateStatsFromCache();
+
+      // ── Background API call ──────────────────────────────────────────
       const { ok, data } = await apiCall(`/orders/${orderId}/status`, 'PATCH', { status: newStatus });
       if (ok) {
-        showToast(`Order status updated to ${newStatus}!`);
-        loadOrders();
-        loadStats();
+        // Merge the server's canonical order object back in
+        if (data.order) cachedOrders[orderIdx] = data.order;
+        showToast(`Order ${newStatus === 'Accepted' ? 'accepted ✓' : newStatus === 'Printing' ? 'sent to print 🖨️' : 'completed ✓'}`, 'success');
+        renderOrdersTable(cachedOrders);
+        updateStatsFromCache();
       } else {
-        showToast(data.error || 'Failed to update order status.', 'error');
+        // Rollback on failure
+        cachedOrders[orderIdx] = prevOrder;
+        renderOrdersTable(cachedOrders);
+        updateStatsFromCache();
+        showToast(data?.error || 'Failed to update order status.', 'error');
       }
     }
 
@@ -567,20 +596,35 @@
 
     async function handleConfirmReject() {
       const orderId = document.getElementById('rejectOrderId').value;
-      const reason = document.getElementById('rejectReasonInput').value.trim();
+      const reason  = document.getElementById('rejectReasonInput').value.trim();
 
+      // ── Optimistic update ─────────────────────────────────────────────
+      const orderIdx = cachedOrders.findIndex(o => o.id === orderId);
+      const prevOrder = orderIdx !== -1 ? { ...cachedOrders[orderIdx] } : null;
+      if (orderIdx !== -1) {
+        cachedOrders[orderIdx] = { ...cachedOrders[orderIdx], status: 'Rejected', rejection_reason: reason || 'Rejected by shop admin' };
+        renderOrdersTable(cachedOrders);
+        updateStatsFromCache();
+      }
+      rejectModalInstance.hide();   // close modal immediately
+
+      // ── Background API call ───────────────────────────────────────────
       const { ok, data } = await apiCall(`/orders/${orderId}/status`, 'PATCH', {
         status: 'Rejected',
         rejection_reason: reason
       });
 
       if (ok) {
-        rejectModalInstance.hide();
-        showToast('Order rejected.');
-        loadOrders();
-        loadStats();
+        if (data.order && orderIdx !== -1) cachedOrders[orderIdx] = data.order;
+        showToast('Order rejected.', 'success');
+        renderOrdersTable(cachedOrders);
+        updateStatsFromCache();
       } else {
-        showToast(data.error || 'Failed to reject order.', 'error');
+        // Rollback
+        if (orderIdx !== -1 && prevOrder) cachedOrders[orderIdx] = prevOrder;
+        renderOrdersTable(cachedOrders);
+        updateStatsFromCache();
+        showToast(data?.error || 'Failed to reject order.', 'error');
       }
     }
 

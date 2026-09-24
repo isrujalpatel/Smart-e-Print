@@ -478,8 +478,27 @@ function initRazorpayFlow(amount, scheduleTimeStr) {
 }
 
 async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
-  try {
-    for (const file of uploadedFiles) {
+  // ── Collect files to submit before clearing the state ──────────────
+  const filesToSubmit = [...uploadedFiles];
+  const token = getToken();
+
+  // ── Instantly switch to dashboard & reset upload state ─────────────
+  uploadedFiles = []; fileCounter = 0;
+  renderUploadedFilesList();
+  renderFileConfigs();
+  document.getElementById('mainFileInput').value = '';
+  switchView('dashboard');
+
+  // ── Insert optimistic "Uploading…" rows in the table ───────────────
+  const pendingIds = filesToSubmit.map(f => {
+    const tempId = `pending_${Math.random().toString(36).slice(2)}`;
+    injectPendingOrderRow(tempId, f);
+    return { tempId, file: f };
+  });
+
+  // ── Upload each file in the background ─────────────────────────────
+  for (const { tempId, file } of pendingIds) {
+    try {
       const fd = new FormData();
       fd.append('file', file.fileObj);
       fd.append('print_mode', file.mode.startsWith('color') ? 'color' : 'bw');
@@ -487,28 +506,80 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
       fd.append('paper_size', file.paperSize);
       fd.append('payment_method', currentPaymentMethod);
       fd.append('payment_status', paymentStatus);
-      fd.append('range_type', 'full');  // Always full range for now
+      fd.append('range_type', 'full');
       if (scheduleTimeStr) fd.append('schedule_time', scheduleTimeStr);
+
       const res = await fetch(`${CONFIG.API_BASE}/orders`, {
-        method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd
       });
+
       if (!res.ok) {
         let errMsg = `Failed to submit: ${file.name}`;
-        try {
-          const errData = await res.json();
-          if (errData && errData.error) errMsg = errData.error;
-        } catch (_) {}
-        throw new Error(errMsg);
+        try { const e = await res.json(); if (e?.error) errMsg = e.error; } catch (_) {}
+        removePendingRow(tempId);
+        showToast(errMsg, 'error');
+        continue;
       }
+
+      const { order } = await res.json();
+      replacePendingRow(tempId, order);
+      showToast(`${file.name} submitted!`, 'success');
+    } catch (err) {
+      removePendingRow(tempId);
+      showToast(err.message || 'Network error.', 'error');
     }
-    showToast('Order submitted successfully!', 'success');
-    uploadedFiles = []; fileCounter = 0;
-    renderUploadedFilesList();
-    renderFileConfigs();
-    document.getElementById('mainFileInput').value = '';
-    // Small delay to ensure DOM updates before view switch
-    setTimeout(() => switchView('dashboard'), 150);
-  } catch(err) { showToast(err.message || 'Network error.', 'error'); }
+  }
+}
+
+function injectPendingOrderRow(tempId, file) {
+  const tbody = document.getElementById('custOrdersTableBody');
+  if (!tbody) return;
+  // If the table has the "no orders" placeholder, clear it first
+  if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+
+  const tr = document.createElement('tr');
+  tr.id = tempId;
+  tr.style.opacity = '0.65';
+  tr.innerHTML = `
+    <td>
+      <strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(file.name)}</strong>
+      <small style="color:var(--text-muted);">${file.copies} × ${file.mode.startsWith('color')?'color':'bw'} · ${file.paperSize}</small>
+    </td>
+    <td><strong style="color:var(--success);">—</strong></td>
+    <td><span style="color:#eab308;font-weight:600;">Pending</span></td>
+    <td><span class="badge-status badge-Submitted" style="opacity:.6;">Uploading…</span></td>
+    <td>—</td>
+    <td><span style="color:var(--text-muted);font-size:.75rem;">Please wait</span></td>
+  `;
+  tbody.prepend(tr);
+}
+
+function replacePendingRow(tempId, order) {
+  const tr = document.getElementById(tempId);
+  if (!tr) return;
+  const pay = order.payment_status === 'paid'
+    ? `<span style="color:var(--success);font-weight:600;">Paid</span>`
+    : `<span style="color:#eab308;font-weight:600;">Pending</span>`;
+  const canCancel = ['Submitted','Accepted'].includes(order.status);
+  const action = canCancel
+    ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${order.id}')">${t('cancel')}</button>`
+    : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
+  tr.style.opacity = '1';
+  tr.id = '';
+  tr.innerHTML = `
+    <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(order.file_name)}</strong>
+        <small style="color:var(--text-muted);">${order.copies} × ${order.print_mode} · ${order.paper_size}</small></td>
+    <td><strong style="color:var(--success);">₹${(order.total_price||0).toFixed(2)}</strong></td>
+    <td>${pay}</td>
+    <td><span class="badge-status badge-${order.status}">${order.status}</span></td>
+    <td>${order.schedule_time || '—'}</td>
+    <td>${action}</td>
+  `;
+}
+
+function removePendingRow(tempId) {
+  const tr = document.getElementById(tempId);
+  if (tr) tr.remove();
 }
 
 /* ═══════════════════════════════════════════════════════════════
