@@ -82,6 +82,10 @@
       align-items: center;
       gap: 4px;
     }
+    @keyframes orderSlideIn {
+      from { opacity: 0; transform: translateY(-6px) scaleY(.97); }
+      to   { opacity: 1; transform: translateY(0)    scaleY(1); }
+    }
   </style>
 </head>
 <body>
@@ -326,6 +330,8 @@
     let rejectModalInstance = null;
     let detailsModalInstance = null;
     let settingsModalInstance = null;
+    let _adminPollTimer = null;
+    let _knownAdminOrderIds = new Set();
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Role Guard: strictly 'admin' (or legacy 'owner')
@@ -368,6 +374,9 @@
 
       loadOrders();
       loadStats();
+
+      // Auto-poll every 8 s — new orders slide in automatically
+      _adminPollTimer = setInterval(adminAutoRefresh, 8000);
     });
 
     async function loadStats() {
@@ -444,7 +453,38 @@
       }
 
       cachedOrders = data.orders || [];
+      _knownAdminOrderIds = new Set(cachedOrders.map(o => o.id));
       renderOrdersTable(cachedOrders);
+    }
+
+    /** Silent background poll — only shows new orders, doesn't disturb existing rows */
+    async function adminAutoRefresh() {
+      // Skip if a filter is active (avoid confusing partial view)
+      if (currentFilter) return;
+      const { ok, data } = await apiCall('/orders', 'GET');
+      if (!ok) return;
+      const orders = data.orders || [];
+
+      // Check for new orders not yet in the table
+      let hadNew = false;
+      orders.forEach(o => {
+        if (!_knownAdminOrderIds.has(o.id)) {
+          // Prepend a highlighted row
+          const tbody = document.getElementById('ordersTableBody');
+          const placeholder = tbody.querySelector('td[colspan]');
+          if (placeholder) tbody.innerHTML = ''; // clear "no orders" placeholder
+
+          cachedOrders.unshift(o);
+          _knownAdminOrderIds.add(o.id);
+          renderOrdersTable(cachedOrders);
+          hadNew = true;
+        }
+      });
+
+      if (hadNew) {
+        updateStatsFromCache();
+        showToast('📋 New order received!', 'info');
+      }
     }
 
     function renderOrdersTable(orders) {

@@ -171,6 +171,7 @@ async function initDashboard(requiredRole) {
   setupUploadZone();
   setupProfileModals();
   loadCustomerOrders();
+  startCustomerAutoRefresh();
   return user;
 }
 
@@ -233,8 +234,14 @@ function setupNavControls() {
 function switchView(viewName) {
   const uv = document.getElementById('uploadView');
   const dv = document.getElementById('dashboardView');
-  if (viewName === 'upload') { uv.style.display = 'block'; dv.style.display = 'none'; }
-  else { uv.style.display = 'none'; dv.style.display = 'block'; loadCustomerOrders(); }
+  if (viewName === 'upload') {
+    uv.style.display = 'block'; dv.style.display = 'none';
+    stopCustomerAutoRefresh();
+  } else {
+    uv.style.display = 'none'; dv.style.display = 'block';
+    loadCustomerOrders();
+    startCustomerAutoRefresh();
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -478,26 +485,28 @@ function initRazorpayFlow(amount, scheduleTimeStr) {
 }
 
 async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
-  // ── Collect files to submit before clearing the state ──────────────
+  // ── Collect files before clearing state ────────────────────────────
   const filesToSubmit = [...uploadedFiles];
   const token = getToken();
 
-  // ── Instantly switch to dashboard & reset upload state ─────────────
+  // ── 1. Reset upload UI and switch view IMMEDIATELY ─────────────────
   uploadedFiles = []; fileCounter = 0;
   renderUploadedFilesList();
   renderFileConfigs();
   document.getElementById('mainFileInput').value = '';
   switchView('dashboard');
 
-  // ── Insert optimistic "Uploading…" rows in the table ───────────────
-  const pendingIds = filesToSubmit.map(f => {
+  // ── 2. Inject a "Submitted" row instantly for each file ─────────────
+  //    The row looks exactly like a real submitted order right away.
+  const pendingItems = filesToSubmit.map(f => {
     const tempId = `pending_${Math.random().toString(36).slice(2)}`;
-    injectPendingOrderRow(tempId, f);
-    return { tempId, file: f };
+    const estimatedCost = f.pages * f.copies * (PRICE_RATES[f.mode] || 2) * (PAPER_MULTIPLIERS[f.paperSize] || 1);
+    injectSubmittedRow(tempId, f, estimatedCost, currentPaymentMethod);
+    return { tempId, file: f, estimatedCost };
   });
 
-  // ── Upload each file in the background ─────────────────────────────
-  for (const { tempId, file } of pendingIds) {
+  // ── 3. Upload each file silently in the background ──────────────────
+  for (const { tempId, file } of pendingItems) {
     try {
       const fd = new FormData();
       fd.append('file', file.fileObj);
@@ -516,45 +525,49 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
       if (!res.ok) {
         let errMsg = `Failed to submit: ${file.name}`;
         try { const e = await res.json(); if (e?.error) errMsg = e.error; } catch (_) {}
-        removePendingRow(tempId);
+        markRowFailed(tempId, file.name);
         showToast(errMsg, 'error');
         continue;
       }
 
+      // Replace estimated row with real server data (price, id, etc.)
       const { order } = await res.json();
-      replacePendingRow(tempId, order);
-      showToast(`${file.name} submitted!`, 'success');
+      finaliseRow(tempId, order);
     } catch (err) {
-      removePendingRow(tempId);
+      markRowFailed(tempId, file.name);
       showToast(err.message || 'Network error.', 'error');
     }
   }
 }
 
-function injectPendingOrderRow(tempId, file) {
+/** Insert a fully-styled "Submitted" row immediately — looks real before upload finishes */
+function injectSubmittedRow(tempId, file, estimatedCost, paymentMethod) {
   const tbody = document.getElementById('custOrdersTableBody');
   if (!tbody) return;
-  // If the table has the "no orders" placeholder, clear it first
   if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
 
+  const payLabel = `<span style="color:#eab308;font-weight:600;">Pending</span>`;
   const tr = document.createElement('tr');
   tr.id = tempId;
-  tr.style.opacity = '0.65';
+  tr.dataset.pending = '1';
+  // Slide-in animation
+  tr.style.cssText = 'animation: orderSlideIn .35s ease; background: rgba(99,102,241,.07);';
   tr.innerHTML = `
     <td>
       <strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(file.name)}</strong>
       <small style="color:var(--text-muted);">${file.copies} × ${file.mode.startsWith('color')?'color':'bw'} · ${file.paperSize}</small>
     </td>
-    <td><strong style="color:var(--success);">—</strong></td>
-    <td><span style="color:#eab308;font-weight:600;">Pending</span></td>
-    <td><span class="badge-status badge-Submitted" style="opacity:.6;">Uploading…</span></td>
+    <td><strong style="color:var(--success);">₹${estimatedCost.toFixed(2)}</strong></td>
+    <td>${payLabel}</td>
+    <td><span class="badge-status badge-Submitted">Submitted</span></td>
     <td>—</td>
-    <td><span style="color:var(--text-muted);font-size:.75rem;">Please wait</span></td>
+    <td><span style="color:var(--text-muted);font-size:.75rem;font-style:italic;">Saving…</span></td>
   `;
   tbody.prepend(tr);
 }
 
-function replacePendingRow(tempId, order) {
+/** Swap the temporary row with real server data once upload succeeds */
+function finaliseRow(tempId, order) {
   const tr = document.getElementById(tempId);
   if (!tr) return;
   const pay = order.payment_status === 'paid'
@@ -564,8 +577,10 @@ function replacePendingRow(tempId, order) {
   const action = canCancel
     ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${order.id}')">${t('cancel')}</button>`
     : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
-  tr.style.opacity = '1';
   tr.id = '';
+  tr.dataset.orderId = order.id;
+  tr.dataset.pending = '';
+  tr.style.background = '';
   tr.innerHTML = `
     <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(order.file_name)}</strong>
         <small style="color:var(--text-muted);">${order.copies} × ${order.print_mode} · ${order.paper_size}</small></td>
@@ -577,47 +592,111 @@ function replacePendingRow(tempId, order) {
   `;
 }
 
-function removePendingRow(tempId) {
+/** Mark a pending row as failed */
+function markRowFailed(tempId, fileName) {
   const tr = document.getElementById(tempId);
-  if (tr) tr.remove();
+  if (!tr) { return; }
+  tr.style.background = 'rgba(239,68,68,.08)';
+  tr.querySelector('td:last-child').innerHTML =
+    `<span style="color:var(--danger);font-size:.75rem;">Failed — <a href="#" onclick="this.closest('tr').remove();return false;">dismiss</a></span>`;
+  const badge = tr.querySelector('.badge-status');
+  if (badge) badge.textContent = 'Error';
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Dashboard — Order Table
+   Dashboard — Order Table  +  Auto-refresh
    ═══════════════════════════════════════════════════════════════ */
-async function loadCustomerOrders() {
+
+// Track known order IDs so we can detect status changes
+let _knownOrderIds = new Set();
+let _autoRefreshTimer = null;
+
+async function loadCustomerOrders(isAutoRefresh = false) {
   const tbody = document.getElementById('custOrdersTableBody');
   if (!tbody) return;
+
+  // Don't clobber pending (uploading) rows during auto-refresh
+  const hasPending = tbody.querySelector('[data-pending="1"]');
+  if (isAutoRefresh && hasPending) return;
+
   try {
     const res = await fetch(`${CONFIG.API_BASE}/orders`, { headers: { Authorization: `Bearer ${getToken()}` } });
     const data = await res.json();
     if (!res.ok) throw new Error();
     const orders = data.orders || [];
+
     if (orders.length === 0) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted);">${t('no_orders')}</td></tr>`;
+      _knownOrderIds = new Set();
       return;
     }
-    tbody.innerHTML = orders.map(o => {
-      const pay = o.payment_status === 'paid'
-        ? `<span style="color:var(--success);font-weight:600;">Paid</span>`
-        : `<span style="color:#eab308;font-weight:600;">Pending</span>`;
-      const canCancel = ['Submitted','Accepted'].includes(o.status);
-      const action = canCancel
-        ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${o.id}')">${t('cancel')}</button>`
-        : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
-      return `<tr>
-        <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.file_name)}</strong>
-            <small style="color:var(--text-muted);">${o.copies} × ${o.print_mode} · ${o.paper_size}</small></td>
-        <td><strong style="color:var(--success);">₹${(o.total_price||0).toFixed(2)}</strong></td>
-        <td>${pay}</td>
-        <td><span class="badge-status badge-${o.status}">${o.status}</span></td>
-        <td>${o.schedule_time || '—'}</td>
-        <td>${action}</td>
-      </tr>`;
-    }).join('');
+
+    if (isAutoRefresh) {
+      // ── Smart patch: only update changed rows, don't re-render ────
+      orders.forEach(o => {
+        const existingRow = tbody.querySelector(`[data-order-id="${o.id}"]`);
+        if (existingRow) {
+          // Update status badge if it changed
+          const badge = existingRow.querySelector('.badge-status');
+          if (badge && badge.textContent !== o.status) {
+            badge.className = `badge-status badge-${o.status}`;
+            badge.textContent = o.status;
+            existingRow.style.animation = 'orderSlideIn .4s ease';
+          }
+        } else if (!_knownOrderIds.has(o.id)) {
+          // New order appeared — prepend row
+          const row = buildOrderRow(o);
+          row.style.animation = 'orderSlideIn .4s ease';
+          tbody.prepend(row);
+        }
+        _knownOrderIds.add(o.id);
+      });
+    } else {
+      // Full render on manual load / initial load
+      tbody.innerHTML = '';
+      _knownOrderIds = new Set();
+      orders.forEach(o => {
+        const row = buildOrderRow(o);
+        tbody.appendChild(row);
+        _knownOrderIds.add(o.id);
+      });
+    }
   } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--danger);">${t('load_error')}</td></tr>`;
+    if (!isAutoRefresh) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--danger);">${t('load_error')}</td></tr>`;
+    }
   }
+}
+
+function buildOrderRow(o) {
+  const tr = document.createElement('tr');
+  tr.dataset.orderId = o.id;
+  const pay = o.payment_status === 'paid'
+    ? `<span style="color:var(--success);font-weight:600;">Paid</span>`
+    : `<span style="color:#eab308;font-weight:600;">Pending</span>`;
+  const canCancel = ['Submitted','Accepted'].includes(o.status);
+  const action = canCancel
+    ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${o.id}')">${t('cancel')}</button>`
+    : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
+  tr.innerHTML = `
+    <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.file_name)}</strong>
+        <small style="color:var(--text-muted);">${o.copies} × ${o.print_mode} · ${o.paper_size}</small></td>
+    <td><strong style="color:var(--success);">₹${(o.total_price||0).toFixed(2)}</strong></td>
+    <td>${pay}</td>
+    <td><span class="badge-status badge-${o.status}">${o.status}</span></td>
+    <td>${o.schedule_time || '—'}</td>
+    <td>${action}</td>
+  `;
+  return tr;
+}
+
+/** Start auto-refreshing every 8 s (stops if user navigates away) */
+function startCustomerAutoRefresh() {
+  stopCustomerAutoRefresh();
+  _autoRefreshTimer = setInterval(() => loadCustomerOrders(true), 8000);
+}
+function stopCustomerAutoRefresh() {
+  if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
 }
 
 async function cancelOrder(id) {
