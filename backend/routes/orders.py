@@ -224,12 +224,15 @@ def create_order(current_user):
     db.session.commit()
 
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="ORDER_CREATED",
-        user=current_user,
-        details=f"Created order {str(order.id)[:8]} for '{filename}' (₹{total_price})",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="ORDER_CREATED",
+            user=current_user,
+            details=f"Created order {str(order.id)[:8]} for '{filename}' (₹{total_price})",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     return jsonify({"message": "Order submitted successfully.", "order": order.to_dict()}), 201
 
@@ -313,12 +316,15 @@ def cancel_order(current_user, order_id):
     db.session.commit()
 
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="ORDER_CANCELLED",
-        user=current_user,
-        details=f"Customer cancelled order {order.id[:8]} (was '{old_status}')",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="ORDER_CANCELLED",
+            user=current_user,
+            details=f"Customer cancelled order {order.id[:8]} (was '{old_status}')",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     return jsonify({
         "message": "Order cancelled successfully.",
@@ -358,12 +364,15 @@ def update_order_status(current_user, order_id):
     db.session.commit()
 
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="ORDER_STATUS_UPDATED",
-        user=current_user,
-        details=f"Updated order {order.id[:8]} status from '{old_status}' to '{new_status}'" + (f" (Reason: {rejection_reason})" if rejection_reason else ""),
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="ORDER_STATUS_UPDATED",
+            user=current_user,
+            details=f"Updated order {order.id[:8]} status from '{old_status}' to '{new_status}'" + (f" (Reason: {rejection_reason})" if rejection_reason else ""),
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     return jsonify({
         "message": f"Order status updated to {new_status}.",

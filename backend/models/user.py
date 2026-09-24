@@ -15,12 +15,12 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=True)   # nullable for Google-only users
     role          = db.Column(db.String(20), nullable=False)   # 'customer' | 'admin' | 'super_admin'
     is_active     = db.Column(db.Boolean, nullable=False, default=True)
-    last_login    = db.Column(db.DateTime, nullable=True)
+    last_login    = db.Column(db.DateTime(timezone=True), nullable=True)
     login_count   = db.Column(db.Integer, nullable=False, default=0)
     google_id     = db.Column(db.String(255), nullable=True, index=True)
-    created_at    = db.Column(db.DateTime,
+    created_at    = db.Column(db.DateTime(timezone=True),
                               default=lambda: datetime.now(timezone.utc))
-    updated_at    = db.Column(db.DateTime,
+    updated_at    = db.Column(db.DateTime(timezone=True),
                               default=lambda: datetime.now(timezone.utc),
                               onupdate=lambda: datetime.now(timezone.utc))
 

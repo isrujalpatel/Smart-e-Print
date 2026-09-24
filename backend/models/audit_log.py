@@ -16,7 +16,7 @@ class AuditLog(db.Model):
     action     = db.Column(db.String(100), nullable=False)
     details    = db.Column(db.Text, nullable=True)
     ip_address = db.Column(db.String(50), nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship("User", backref="audit_logs", foreign_keys=[user_id])
 
@@ -52,6 +52,10 @@ class AuditLog(db.Model):
             details=details,
             ip_address=ip_address,
         )
-        db.session.add(log_entry)
-        db.session.commit()
+        try:
+            db.session.add(log_entry)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"[WARN] AuditLog write failed (non-fatal): {e}")
         return log_entry

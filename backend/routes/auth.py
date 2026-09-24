@@ -64,12 +64,15 @@ def register():
 
     # Log audit event
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="CUSTOMER_REGISTERED",
-        user=user,
-        details=f"Customer registered with email: {email}",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="CUSTOMER_REGISTERED",
+            user=user,
+            details=f"Customer registered with email: {email}",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     token = _generate_token(user)
     return jsonify({
@@ -109,12 +112,15 @@ def login():
 
     # Record login audit log
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="USER_LOGIN",
-        user=user,
-        details=f"Successful login (Role: {user.role})",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="USER_LOGIN",
+            user=user,
+            details=f"Successful login (Role: {user.role})",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     token = _generate_token(user)
     return jsonify({
@@ -152,12 +158,15 @@ def update_name(current_user):
     db.session.commit()
 
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="PROFILE_NAME_UPDATED",
-        user=current_user,
-        details=f"Name changed from '{old_name}' to '{new_name}'",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="PROFILE_NAME_UPDATED",
+            user=current_user,
+            details=f"Name changed from '{old_name}' to '{new_name}'",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     return jsonify({
         "message": "Name updated successfully.",
@@ -196,12 +205,15 @@ def change_password(current_user):
     db.session.commit()
 
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="PASSWORD_CHANGED",
-        user=current_user,
-        details="User changed their password",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="PASSWORD_CHANGED",
+            user=current_user,
+            details="User changed their password",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     return jsonify({"message": "Password changed successfully."}), 200
 
@@ -212,12 +224,15 @@ def change_password(current_user):
 def logout(current_user):
     """Acknowledge logout."""
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="USER_LOGOUT",
-        user=current_user,
-        details="User signed out",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="USER_LOGOUT",
+            user=current_user,
+            details="User signed out",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
     return jsonify({"message": "Logged out successfully."}), 200
 
 
@@ -282,20 +297,26 @@ def google_auth():
         db.session.commit()
 
         ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-        AuditLog.log(
-            action="CUSTOMER_REGISTERED_GOOGLE",
-            user=user,
-            details=f"Customer registered via Google OAuth: {email}",
-            ip_address=ip_addr,
-        )
+        try:
+            AuditLog.log(
+                action="CUSTOMER_REGISTERED_GOOGLE",
+                user=user,
+                details=f"Customer registered via Google OAuth: {email}",
+                ip_address=ip_addr,
+            )
+        except Exception as log_err:
+            print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
-    AuditLog.log(
-        action="USER_LOGIN_GOOGLE",
-        user=user,
-        details="Google sign-in login",
-        ip_address=ip_addr,
-    )
+    try:
+        AuditLog.log(
+            action="USER_LOGIN_GOOGLE",
+            user=user,
+            details="Google sign-in login",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
 
     token = _generate_token(user)
     return jsonify({

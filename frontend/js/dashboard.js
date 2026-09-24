@@ -487,13 +487,21 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
       fd.append('paper_size', file.paperSize);
       fd.append('payment_method', currentPaymentMethod);
       fd.append('payment_status', paymentStatus);
+      fd.append('range_type', 'full');  // Always full range for now
       if (scheduleTimeStr) fd.append('schedule_time', scheduleTimeStr);
       const res = await fetch(`${CONFIG.API_BASE}/orders`, {
         method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd
       });
-      if (!res.ok) throw new Error(`Failed: ${file.name}`);
+      if (!res.ok) {
+        let errMsg = `Failed to submit: ${file.name}`;
+        try {
+          const errData = await res.json();
+          if (errData && errData.error) errMsg = errData.error;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
     }
-    showToast('Order submitted!', 'success');
+    showToast('Order submitted successfully!', 'success');
     uploadedFiles = []; fileCounter = 0;
     renderUploadedFilesList();
     renderFileConfigs();
