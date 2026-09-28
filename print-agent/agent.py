@@ -24,8 +24,16 @@ import tempfile
 import threading
 import urllib.request
 import subprocess
+import logging
 from pathlib import Path
 from typing import Optional
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+log = logging.getLogger("seprint-agent")
 
 # ── FastAPI ────────────────────────────────────────────────────────────────────
 from fastapi import FastAPI, HTTPException, Header, Depends, BackgroundTasks
@@ -64,6 +72,15 @@ ALLOWED_ORIGINS = [
 
 AGENT_VERSION = "1.0.0"
 
+# Directory where agent.py lives — used to store auto-downloaded tools
+AGENT_DIR = Path(__file__).parent.resolve()
+SUMATRA_LOCAL = AGENT_DIR / "tools" / "SumatraPDF.exe"
+
+# Official SumatraPDF portable download URL (single .exe, no install needed)
+SUMATRA_DOWNLOAD_URL = (
+    "https://www.sumatrapdfreader.org/dl/rel/3.5.2/SumatraPDF-3.5.2-64.exe"
+)
+
 app = FastAPI(
     title="Smart E-Print Agent",
     description="Local Windows print agent for Smart E-Print admin dashboard",
@@ -83,6 +100,9 @@ app.add_middleware(
 # ── In-memory job tracking ─────────────────────────────────────────────────────
 _jobs: dict = {}
 _jobs_lock = threading.Lock()
+
+# ── SumatraPDF auto-install state ──────────────────────────────────────────────
+_sumatra_ready: bool = False   # set to True after successful download/find
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -174,19 +194,75 @@ def _download_order_file(order_id: str, token: str, dest_path: str) -> None:
             f.write(resp.read())
 
 
-def _find_sumatra() -> Optional[str]:
-    """Locate SumatraPDF.exe on common installation paths."""
+# ══════════════════════════════════════════════════════════════════════════════
+#  SUMATRAPDF AUTO-INSTALL
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _auto_install_sumatra() -> None:
+    """
+    Called once at startup (Windows-only).
+    If SumatraPDF is not already found on the system, download the portable
+    .exe from the official site and save it to ./tools/SumatraPDF.exe.
+    The file is a self-contained portable executable — no installation needed.
+    """
+    global _sumatra_ready
+
+    if not IS_WINDOWS:
+        _sumatra_ready = False
+        return
+
+    # Already installed system-wide?
+    if _find_sumatra_system():
+        log.info("SumatraPDF found on system — skipping auto-download.")
+        _sumatra_ready = True
+        return
+
+    # Already downloaded locally?
+    if SUMATRA_LOCAL.exists():
+        log.info(f"SumatraPDF found locally at {SUMATRA_LOCAL}")
+        _sumatra_ready = True
+        return
+
+    log.info("SumatraPDF not found. Auto-downloading portable version...")
+    log.info(f"  URL : {SUMATRA_DOWNLOAD_URL}")
+    log.info(f"  Dest: {SUMATRA_LOCAL}")
+
+    try:
+        SUMATRA_LOCAL.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = SUMATRA_LOCAL.with_suffix(".tmp")
+
+        def _report_progress(block_num, block_size, total_size):
+            if total_size > 0:
+                pct = min(100, block_num * block_size * 100 // total_size)
+                if pct % 20 == 0:
+                    log.info(f"  Downloading SumatraPDF... {pct}%")
+
+        urllib.request.urlretrieve(
+            SUMATRA_DOWNLOAD_URL,
+            filename=str(tmp_path),
+            reporthook=_report_progress,
+        )
+        tmp_path.rename(SUMATRA_LOCAL)
+        log.info(f"✅ SumatraPDF downloaded successfully → {SUMATRA_LOCAL}")
+        _sumatra_ready = True
+
+    except Exception as exc:
+        log.warning(f"⚠️  SumatraPDF auto-download failed: {exc}")
+        log.warning("    PDF printing will fall back to Adobe / ShellExecute.")
+        _sumatra_ready = False
+
+
+def _find_sumatra_system() -> Optional[str]:
+    """Check system-wide installation paths only (no local tools/ dir)."""
     candidates = [
         r"C:\Program Files\SumatraPDF\SumatraPDF.exe",
         r"C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe",
         os.path.join(os.environ.get("LOCALAPPDATA", ""), "SumatraPDF", "SumatraPDF.exe"),
         os.path.join(os.environ.get("USERPROFILE", ""), "AppData", "Local", "SumatraPDF", "SumatraPDF.exe"),
-        "SumatraPDF.exe",  # in PATH
     ]
     for c in candidates:
         if c and os.path.exists(c):
             return c
-    # Try PATH
     try:
         result = subprocess.run(["where", "SumatraPDF.exe"], capture_output=True, text=True)
         if result.returncode == 0:
@@ -194,6 +270,15 @@ def _find_sumatra() -> Optional[str]:
     except Exception:
         pass
     return None
+
+
+def _find_sumatra() -> Optional[str]:
+    """Locate SumatraPDF.exe — checks local tools/ folder first, then system paths."""
+    # 1. Auto-downloaded portable copy (highest priority)
+    if SUMATRA_LOCAL.exists():
+        return str(SUMATRA_LOCAL)
+    # 2. System-wide installation
+    return _find_sumatra_system()
 
 
 def _print_document(file_path: str, req: PrintRequest, job_id: str) -> None:
@@ -278,15 +363,30 @@ def _print_document(file_path: str, req: PrintRequest, job_id: str) -> None:
 #  ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
 
+@app.on_event("startup")
+async def on_startup():
+    """Run once when the agent starts — auto-download SumatraPDF if needed."""
+    import asyncio
+    loop = asyncio.get_event_loop()
+    # Run blocking download in a thread so it doesn't block the event loop
+    loop.run_in_executor(None, _auto_install_sumatra)
+
+
 @app.get("/status")
 def get_status(_: bool = Depends(verify_token)):
     """Liveness check — call this first to verify the agent is running."""
+    sumatra_path = _find_sumatra()
     return {
-        "status":    "online",
-        "agent":     "Smart E-Print Print Agent",
-        "version":   AGENT_VERSION,
-        "platform":  sys.platform,
-        "is_windows": IS_WINDOWS,
+        "status":      "online",
+        "agent":       "Smart E-Print Print Agent",
+        "version":     AGENT_VERSION,
+        "platform":    sys.platform,
+        "is_windows":  IS_WINDOWS,
+        "sumatra_pdf": {
+            "available": sumatra_path is not None,
+            "path":      sumatra_path or "not found — using Adobe/ShellExecute fallback",
+            "local_copy": str(SUMATRA_LOCAL) if SUMATRA_LOCAL.exists() else None,
+        },
     }
 
 
