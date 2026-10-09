@@ -20,67 +20,89 @@
       font-weight: 600;
       letter-spacing: 0.02em;
     }
-    .status-Submitted { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
-    .status-Accepted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .status-Printing { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
-    .status-Completed { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-    .status-Rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-Submitted { background: #FFF8E7; color: #92400E; border: 1px solid #FDE68A; }
+    .status-Accepted  { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .status-Printing  { background: #F5F3FF; color: #5B21B6; border: 1px solid #DDD6FE; }
+    .status-Completed { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+    .status-Rejected  { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
 
     .filter-pill {
-      padding: 6px 14px;
+      padding: 5px 14px;
       border-radius: 20px;
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       cursor: pointer;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: var(--muted);
-      transition: all 0.2s ease;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      color: #64748B;
+      transition: all 0.18s ease;
+      font-weight: 500;
     }
     .filter-pill.active, .filter-pill:hover {
-      background: var(--accent);
+      background: #2563EB;
       color: #fff;
-      border-color: var(--accent);
+      border-color: #2563EB;
     }
     .table-dark-custom {
       width: 100%;
-      color: var(--text-color);
-      border-collapse: separate;
-      border-spacing: 0 8px;
+      color: #0F172A;
+      border-collapse: collapse;
+      table-layout: fixed;
     }
     .table-dark-custom th {
-      color: var(--muted);
-      font-size: 0.8rem;
+      color: #64748B;
+      font-size: 0.73rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 10px 16px;
+      letter-spacing: 0.04em;
+      padding: 8px 10px;
       border: none;
+      white-space: nowrap;
+      overflow: hidden;
+      font-weight: 600;
+    }
+    /* Column width allocations */
+    .table-dark-custom th:nth-child(1) { width: 18%; }  /* Customer */
+    .table-dark-custom th:nth-child(2) { width: 20%; }  /* Document */
+    .table-dark-custom th:nth-child(3) { width: 14%; }  /* Mode/Specs */
+    .table-dark-custom th:nth-child(4) { width: 13%; }  /* Price */
+    .table-dark-custom th:nth-child(5) { width: 10%; }  /* Status */
+    .table-dark-custom th:nth-child(6) { width: 10%; }  /* Submitted */
+    .table-dark-custom th:nth-child(7) { width: 15%; }  /* Actions */
+    .table-dark-custom {
+      border-spacing: 0;
+      border-collapse: collapse;
+    }
+    .table-dark-custom thead tr {
+      border-bottom: 1px solid #E2E8F0;
     }
     .table-dark-custom td {
-      background: rgba(255, 255, 255, 0.03);
-      padding: 14px 16px;
-      font-size: 0.9rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: transparent;
+      padding: 11px 10px;
+      font-size: 0.84rem;
+      border-bottom: 1px solid #F1F5F9;
       vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #0F172A;
     }
     .table-dark-custom tr td:first-child {
-      border-left: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px 0 0 12px;
+      border-left: none;
+      border-radius: 0;
     }
     .table-dark-custom tr td:last-child {
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 0 12px 12px 0;
+      border-right: none;
+      border-radius: 0;
     }
-    .table-dark-custom tr:hover td {
-      background: rgba(255, 255, 255, 0.06);
+    .table-dark-custom tbody tr:hover td {
+      background: #F8FAFC;
     }
     .btn-action-sm {
-      padding: 5px 10px;
-      font-size: 0.78rem;
-      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 0.74rem;
+      border-radius: 7px;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
+      white-space: nowrap;
     }
     @keyframes orderSlideIn {
       from { opacity: 0; transform: translateY(-6px) scaleY(.97); }
@@ -255,11 +277,11 @@
       </div>
 
       <!-- Orders Table Container -->
-      <div class="table-responsive">
-        <table class="table-dark-custom">
+      <div class="table-responsive" style="overflow-x:auto;">
+        <table class="table-dark-custom" style="min-width:720px;">
           <thead>
             <tr>
-              <th>Order ID</th>
+
               <th>Customer</th>
               <th>Document</th>
               <th>Mode / Specs</th>
@@ -271,7 +293,7 @@
           </thead>
           <tbody id="ordersTableBody">
             <tr>
-              <td colspan="8" class="text-center py-4" style="color:var(--muted);">
+              <td colspan="7" class="text-center py-4" style="color:var(--muted);">
                 <i class="bi bi-arrow-repeat spin"></i> Loading print queue…
               </td>
             </tr>
@@ -595,11 +617,11 @@
     async function loadOrders() {
       const url = currentFilter ? `/orders?status=${currentFilter}` : '/orders';
       const tbody = document.getElementById('ordersTableBody');
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4" style="color:var(--muted);"><span class="spinner-border spinner-border-sm me-2"></span> Loading orders…</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4" style="color:var(--muted);"><span class="spinner-border spinner-border-sm me-2"></span> Loading orders…</td></tr>`;
 
       const { ok, data } = await apiCall(url, 'GET');
       if (!ok) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
         return;
       }
 
@@ -641,14 +663,13 @@
     function renderOrdersTable(orders) {
       const tbody = document.getElementById('ordersTableBody');
       if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4" style="color:var(--muted);">No orders found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4" style="color:var(--muted);">No orders found.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = orders.map(o => {
-        const shortId = o.id.substring(0, 8);
         const createdDate = o.created_at ? new Date(o.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—';
-        const modeBadge = o.print_mode === 'color' ? '<span class="badge bg-warning text-dark">Color</span>' : '<span class="badge bg-secondary">B&W</span>';
+        const modeBadge = o.print_mode === 'color' ? '<span class="badge bg-warning text-dark" style="font-size:.7rem;">Color</span>' : '<span class="badge bg-secondary" style="font-size:.7rem;">B&W</span>';
         
         let actionButtons = '';
         if (o.status === 'Submitted') {
@@ -657,7 +678,7 @@
               <i class="bi bi-check-lg"></i> Accept
             </button>
             <button class="btn btn-outline-danger btn-action-sm" onclick="openRejectModal('${o.id}')">
-              <i class="bi bi-x-lg"></i> Reject
+              <i class="bi bi-x-lg"></i>
             </button>
           `;
         } else if (o.status === 'Accepted') {
@@ -666,59 +687,53 @@
               <i class="bi bi-printer"></i> Print
             </button>
             <button class="btn btn-outline-danger btn-action-sm" onclick="openRejectModal('${o.id}')">
-              <i class="bi bi-x-lg"></i> Reject
+              <i class="bi bi-x-lg"></i>
             </button>
           `;
         } else if (o.status === 'Printing') {
           actionButtons = `
             <button class="btn btn-success btn-action-sm" onclick="updateStatus('${o.id}', 'Completed')">
-              <i class="bi bi-check2-all"></i> Complete
+              <i class="bi bi-check2-all"></i> Done
             </button>
           `;
         } else {
-          actionButtons = `<button class="btn btn-outline-secondary btn-action-sm" onclick="viewOrderDetails('${o.id}')"><i class="bi bi-eye"></i> Details</button>`;
+          actionButtons = `<button class="btn btn-outline-secondary btn-action-sm" onclick="viewOrderDetails('${o.id}')"><i class="bi bi-eye"></i></button>`;
         }
         
-        // Add Download button to all orders - using authenticated fetch download helper
+        // Download button
         actionButtons += `
-          <button class="btn btn-outline-info btn-action-sm ms-1" onclick="downloadOrderFile('${o.id}', '${escapeHtml(o.file_name)}')">
-            <i class="bi bi-download"></i> File
+          <button class="btn btn-outline-info btn-action-sm ms-1" onclick="downloadOrderFile('${o.id}', '${escapeHtml(o.file_name)}')" title="Download File">
+            <i class="bi bi-download"></i>
           </button>
         `;
 
         return `
           <tr>
             <td>
-              <a href="#" onclick="viewOrderDetails('${o.id}'); return false;" class="text-info font-monospace" style="text-decoration:none;">
-                #${shortId}
-              </a>
+              <div class="fw-semibold" style="font-size:.85rem;">${escapeHtml(o.customer_name || 'Customer')}</div>
+              <small class="text-muted" style="font-size:.74rem;">${escapeHtml(o.customer_email || '—')}</small>
             </td>
             <td>
-              <div><strong>${escapeHtml(o.customer_name || 'Customer')}</strong></div>
-              <small class="text-muted">${escapeHtml(o.customer_email || '—')}</small>
-            </td>
-            <td>
-              <div class="text-truncate" style="max-width:180px;" title="${escapeHtml(o.file_name)}">
+              <div class="text-truncate" style="max-width:160px; font-size:.83rem;" title="${escapeHtml(o.file_name)}">
                 <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>${escapeHtml(o.file_name)}
               </div>
-              <small class="text-muted">${o.page_count} pages · ${o.copies} ${o.copies > 1 ? 'copies' : 'copy'}</small>
+              <small class="text-muted" style="font-size:.73rem;">${o.page_count}pg · ${o.copies}×</small>
             </td>
             <td>
-              ${modeBadge} <small class="text-muted">· ${o.paper_size || 'A4'}</small>
-              <div><small class="text-muted">Pages: ${escapeHtml(o.page_range)}</small></div>
+              ${modeBadge}
+              <small class="text-muted d-block" style="font-size:.73rem;">${o.paper_size || 'A4'} · ${escapeHtml(o.page_range)}</small>
             </td>
             <td>
-              <strong class="text-success">₹${o.total_price.toFixed(2)}</strong>
-              <div><small class="text-muted">${(o.payment_method || 'cash').toUpperCase()} (${o.payment_status || 'pending'})</small></div>
+              <span class="fw-bold text-success" style="font-size:.87rem;">₹${o.total_price.toFixed(2)}</span>
+              <small class="text-muted d-block" style="font-size:.73rem;">${(o.payment_method || 'cash').toUpperCase()}</small>
             </td>
             <td>
-              <span class="order-status-badge status-${o.status}">
+              <span class="order-status-badge status-${o.status}" style="font-size:.72rem;">
                 ● ${o.status}
               </span>
-              ${o.rejection_reason ? `<div class="small text-danger mt-1 text-truncate" style="max-width:120px;" title="${escapeHtml(o.rejection_reason)}">Reason: ${escapeHtml(o.rejection_reason)}</div>` : ''}
             </td>
-            <td><small class="text-muted">${createdDate}</small></td>
-            <td class="text-end">
+            <td><small class="text-muted" style="font-size:.76rem;">${createdDate}</small></td>
+            <td class="text-end" style="white-space:nowrap;">
               ${actionButtons}
             </td>
           </tr>

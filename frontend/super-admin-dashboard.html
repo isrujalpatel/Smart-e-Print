@@ -10,98 +10,137 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
   <link href="css/style.css" rel="stylesheet" />
   <style>
+    /* ── Super Admin Badge ─────────────────────────────── */
     .super-admin-badge {
-      background: linear-gradient(135deg, #f59e0b, #ef4444);
-      color: #fff;
+      background: #1E293B;
+      color: #94A3B8;
       padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 700;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
       letter-spacing: 0.04em;
+      border: 1px solid #334155;
     }
+
+    /* ── Tab Navigation ────────────────────────────────── */
     .nav-tab-custom {
       display: flex;
-      gap: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 12px;
-      margin-bottom: 24px;
+      gap: 6px;
+      border-bottom: 1px solid var(--hairline);
+      padding-bottom: 0;
+      margin-bottom: 28px;
+      overflow-x: auto;
     }
     .tab-btn {
       background: transparent;
-      border: 1px solid transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
       color: var(--muted);
-      padding: 8px 18px;
-      border-radius: 12px;
-      font-size: 0.9rem;
+      padding: 10px 16px;
+      border-radius: 0;
+      font-size: 0.86rem;
       font-weight: 500;
-      transition: all 0.2s ease;
+      transition: all 0.18s ease;
       cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .tab-btn.active, .tab-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      border-color: rgba(255, 255, 255, 0.12);
+    .tab-btn:hover {
+      color: var(--ink);
+      border-bottom-color: var(--hairline);
     }
     .tab-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
     }
+
+    /* ── Tables ────────────────────────────────────────── */
     .table-dark-custom {
       width: 100%;
-      color: var(--text-color);
-      border-collapse: separate;
-      border-spacing: 0 8px;
+      color: var(--ink);
+      border-collapse: collapse;
+    }
+    .table-dark-custom thead tr {
+      border-bottom: 1px solid var(--hairline);
     }
     .table-dark-custom th {
       color: var(--muted);
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      padding: 10px 14px;
+      padding: 10px 12px;
       border: none;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .table-dark-custom tbody tr {
+      border-bottom: 1px solid var(--hairline);
+      transition: background 0.15s ease;
+    }
+    .table-dark-custom tbody tr:hover {
+      background: var(--bg-card-hover);
     }
     .table-dark-custom td {
-      background: rgba(255, 255, 255, 0.03);
-      padding: 12px 14px;
-      font-size: 0.88rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: transparent;
+      padding: 11px 12px;
+      font-size: 0.87rem;
       vertical-align: middle;
+      color: var(--ink);
     }
-    .table-dark-custom tr td:first-child {
-      border-left: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px 0 0 12px;
-    }
-    .table-dark-custom tr td:last-child {
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 0 12px 12px 0;
-    }
+
+    /* ── Status / Role Pills ───────────────────────────── */
     .status-pill {
-      font-size: 0.75rem;
+      font-size: 0.73rem;
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      display: inline-block;
     }
-    .status-pill.active { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-    .status-pill.disabled { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-pill.active  { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+    .status-pill.disabled { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+
     .role-tag {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 600;
       padding: 3px 8px;
-      border-radius: 6px;
+      border-radius: 4px;
       text-transform: uppercase;
+      letter-spacing: 0.03em;
+      display: inline-block;
     }
-    .role-tag.customer { background: rgba(6, 182, 212, 0.15); color: #67e8f9; }
-    .role-tag.admin { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-    .role-tag.super_admin { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .role-tag.customer  { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .role-tag.admin     { background: #F5F3FF; color: #5B21B6; border: 1px solid #DDD6FE; }
+    .role-tag.super_admin { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+
+    /* ── Action Buttons ────────────────────────────────── */
+    .btn-action-sm {
+      padding: 4px 10px;
+      font-size: 0.76rem;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    /* ── Info Row (Admin Detail) ───────────────────────── */
+    .info-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 0.73rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .info-value { font-size: 0.9rem; color: var(--ink); font-weight: 500; }
   </style>
 </head>
 <body>
 
   <!-- Ambient Background -->
-  <div class="bg-animated" style="opacity:.6;">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+  <div class="bg-animated">
   </div>
 
   <!-- Toast Container -->
@@ -146,10 +185,10 @@
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="user-avatar" id="sidebarAvatar"
-             style="background:linear-gradient(135deg,#F59E0B,#EF4444);">👑</div>
+             style="background:#1E293B; color:#94A3B8; font-size:1rem;">SA</div>
         <div class="user-info">
           <div class="user-name" id="sidebarUserName">Super Admin</div>
-          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:#FBBF24;">Super Admin</div>
+          <div class="user-role-label" id="sidebarUserRoleLabel" style="color:var(--muted);">Super Admin</div>
         </div>
       </div>
       <a href="#" class="btn-outline-glass w-100" id="logoutBtn"
@@ -168,7 +207,7 @@
     <div class="dash-header">
       <div>
         <h1 class="dash-title">
-          Super Admin Dashboard 👑
+          Super Admin Dashboard
         </h1>
         <p class="dash-subtitle">
           Full System &amp; Role Management · Welcome, <span class="gradient-text" id="welcomeName">Super Admin</span>
@@ -176,7 +215,7 @@
       </div>
       <div class="d-flex align-items-center gap-2">
         <span class="super-admin-badge">
-          <i class="bi bi-shield-fill-check"></i> Super Admin
+          <i class="bi bi-shield-lock-fill me-1"></i> Super Admin
         </span>
         <button class="btn-outline-glass btn-sm" id="btnRefreshAll" title="Refresh data">
           <i class="bi bi-arrow-clockwise"></i> Refresh
@@ -184,16 +223,16 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs Header (Mobile/Desktop friendly) -->
+    <!-- Navigation Tabs Header -->
     <div class="nav-tab-custom">
       <button class="tab-btn active" id="tabBtnOverview" onclick="switchTab('overview')">
         <i class="bi bi-speedometer2 me-1"></i> Overview
       </button>
       <button class="tab-btn" id="tabBtnUsers" onclick="switchTab('users')">
-        <i class="bi bi-people me-1"></i> User Management
+        <i class="bi bi-people me-1"></i> Users
       </button>
       <button class="tab-btn" id="tabBtnAdmin" onclick="switchTab('admin')">
-        <i class="bi bi-shield-lock me-1"></i> Admin Management (Single Admin)
+        <i class="bi bi-shield-lock me-1"></i> Admin Account
       </button>
       <button class="tab-btn" id="tabBtnAudit" onclick="switchTab('audit')">
         <i class="bi bi-journal-text me-1"></i> Audit Logs
@@ -209,49 +248,50 @@
         <div class="col-6 col-lg-3">
           <div class="stat-card">
             <div class="stat-label">Total Users</div>
-            <div class="stat-value gradient-text" id="kpiTotalUsers">0</div>
+            <div class="stat-value" id="kpiTotalUsers">0</div>
             <div class="stat-change neutral" id="kpiActiveCust">0 active customers</div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
           <div class="stat-card">
-            <div class="stat-label">Active Admin Status</div>
-            <div class="stat-value" id="kpiAdminStatus" style="font-size:1.4rem;">Checking…</div>
+            <div class="stat-label">Admin Status</div>
+            <div class="stat-value" id="kpiAdminStatus" style="font-size:1.5rem;">—</div>
             <div class="stat-change neutral" id="kpiAdminSub">Single Shop Admin</div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
           <div class="stat-card">
-            <div class="stat-label">Total Logins Recorded</div>
-            <div class="stat-value" id="kpiTotalLogins" style="color:#60a5fa;">0</div>
+            <div class="stat-label">Total Logins</div>
+            <div class="stat-value" id="kpiTotalLogins">0</div>
             <div class="stat-change neutral" id="kpiLoggedInUsers">0 users logged in</div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
           <div class="stat-card">
             <div class="stat-label">Total Revenue</div>
-            <div class="stat-value" id="kpiRevenue" style="color:var(--accent);">₹0</div>
+            <div class="stat-value" id="kpiRevenue">₹0</div>
             <div class="stat-change neutral" id="kpiOrders">0 orders placed</div>
           </div>
         </div>
       </div>
 
-      <!-- Quick Action & Rules Banner -->
+      <!-- System Rules Info -->
       <div class="glass-card p-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col-lg-8">
-            <h3 class="section-title mb-2">Strict 3-Role System Enforcement</h3>
-            <p class="text-muted small mb-0">
-              System Invariants: <strong>Unlimited Customers</strong>, <strong>Exactly 1 Admin</strong>, and <strong>Exactly 1 Super Admin</strong>.
-              Admins operate the print queue. Super Admin controls user accounts and the single Admin account lifecycle. Historical print orders are preserved even if accounts are modified or deleted.
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+          <div style="flex:1; min-width:260px;">
+            <h3 class="section-title mb-1">System Role Constraints</h3>
+            <p class="text-muted small mb-0" style="line-height:1.7;">
+              <span class="me-3"><i class="bi bi-people me-1"></i><strong>Unlimited</strong> Customers</span>
+              <span class="me-3"><i class="bi bi-shield me-1"></i><strong>Exactly 1</strong> Admin</span>
+              <span><i class="bi bi-shield-fill-check me-1"></i><strong>Exactly 1</strong> Super Admin</span>
             </p>
           </div>
-          <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-            <button class="btn-gradient btn-sm me-2" onclick="openAddCustomerModal()">
+          <div class="d-flex gap-2 flex-shrink-0">
+            <button class="btn-gradient btn-sm" onclick="openAddCustomerModal()">
               <i class="bi bi-person-plus"></i> Add Customer
             </button>
             <button class="btn-outline-glass btn-sm" onclick="switchTab('admin')">
-              <i class="bi bi-shield-lock"></i> Manage Admin
+              <i class="bi bi-shield-lock"></i> Admin
             </button>
           </div>
         </div>
@@ -304,8 +344,8 @@
         </div>
 
         <!-- Users Table -->
-        <div class="table-responsive">
-          <table class="table-dark-custom">
+        <div class="table-responsive" style="overflow-x:auto;">
+          <table class="table-dark-custom" style="min-width:760px;">
             <thead>
               <tr>
                 <th>User ID</th>
@@ -336,17 +376,17 @@
         <!-- Admin Account Overview Card -->
         <div class="col-lg-7">
           <div class="glass-card p-4 h-100">
-            <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
               <div>
-                <h2 class="section-title mb-1">Single Shop Admin Account</h2>
-                <p class="section-desc mb-0">There must NEVER be more than one Admin account.</p>
+                <h2 class="section-title mb-1">Shop Admin Account</h2>
+                <p class="section-desc mb-0">System permits exactly one Admin at a time.</p>
               </div>
-              <span class="badge bg-warning text-dark px-3 py-2 fw-bold">Max Limit: 1 Admin</span>
+              <span class="badge text-bg-light border px-3 py-2 fw-semibold" style="font-size:.72rem; white-space:nowrap;">Max: 1 Admin</span>
             </div>
 
-            <div id="adminCardContent" class="py-2">
+            <div id="adminCardContent" class="py-1">
               <div class="text-center py-4 text-muted">
-                <i class="bi bi-arrow-repeat spin"></i> Loading Admin account details…
+                <i class="bi bi-arrow-repeat spin"></i> Loading admin details…
               </div>
             </div>
           </div>
@@ -355,23 +395,23 @@
         <!-- Admin Management Controls Card -->
         <div class="col-lg-5">
           <div class="glass-card p-4 h-100">
-            <h3 class="section-title mb-2">Admin Account Actions</h3>
-            <p class="text-muted small mb-4">
-              If the Admin forgets credentials or the account needs to be replaced, update it below securely without affecting print history.
+            <h3 class="section-title mb-1">Admin Actions</h3>
+            <p class="text-muted small mb-3" style="line-height:1.6;">
+              Securely manage the admin account without affecting existing print records.
             </p>
 
-            <div class="d-grid gap-3">
+            <div class="d-grid gap-2">
               <button class="btn btn-primary" onclick="openResetAdminPasswordModal()">
-                <i class="bi bi-key me-1"></i> Reset Admin Password
+                <i class="bi bi-key me-2"></i> Reset Admin Password
               </button>
-              <button class="btn btn-warning text-dark" id="btnToggleAdminStatus" onclick="toggleAdminAccountStatus()">
-                <i class="bi bi-pause-circle me-1"></i> Toggle Enable / Disable
+              <button class="btn btn-outline-secondary" id="btnToggleAdminStatus" onclick="toggleAdminAccountStatus()">
+                <i class="bi bi-toggle-on me-2"></i> Toggle Enable / Disable
               </button>
-              <button class="btn btn-outline-info" onclick="openReplaceAdminModal()">
-                <i class="bi bi-person-gear me-1"></i> Replace Admin Account Details
+              <button class="btn btn-outline-dark" onclick="openReplaceAdminModal()">
+                <i class="bi bi-person-gear me-2"></i> Replace Admin Account
               </button>
               <button class="btn btn-outline-danger" onclick="deleteAdminAccountAction()">
-                <i class="bi bi-trash me-1"></i> Delete Admin (Vacate Slot)
+                <i class="bi bi-trash me-2"></i> Delete Admin Slot
               </button>
             </div>
           </div>
@@ -394,8 +434,8 @@
           </button>
         </div>
 
-        <div class="table-responsive">
-          <table class="table-dark-custom">
+        <div class="table-responsive" style="overflow-x:auto;">
+          <table class="table-dark-custom" style="min-width:700px;">
             <thead>
               <tr>
                 <th>Timestamp</th>
