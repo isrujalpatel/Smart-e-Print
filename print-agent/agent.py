@@ -296,8 +296,17 @@ def _print_document(file_path: str, req: PrintRequest, job_id: str) -> None:
         if ext == ".pdf":
             sumatra = _find_sumatra()
             if sumatra:
-                # SumatraPDF silent printing — no browser dialog, no UI
-                print_settings_parts = [f"{req.copies}x", req.paper_size.lower()]
+                # ── SumatraPDF silent printing — no browser dialog, no UI ──
+                # Correct -print-settings syntax:
+                #   copies  : plain integer e.g. "2"  (NOT "2x")
+                #   paper   : "paper=a4"  (NOT bare "a4")
+                #   duplex  : "duplexlong" | "duplexshort"
+                #   orient  : "landscape"  (omit for portrait)
+                paper = (req.paper_size or "A4").lower()   # guard against None
+                print_settings_parts = [
+                    str(req.copies),          # e.g.  "3"
+                    f"paper={paper}",          # e.g.  "paper=a4"
+                ]
                 if req.duplex:
                     print_settings_parts.append("duplexlong")
                 if req.orientation == "landscape":
@@ -310,19 +319,24 @@ def _print_document(file_path: str, req: PrintRequest, job_id: str) -> None:
                     "-silent",
                     file_path,
                 ]
+                log.info(f"[Print] Running: {' '.join(cmd)}")
                 result = subprocess.run(cmd, capture_output=True, timeout=120)
-                if result.returncode not in (0, 1):   # Sumatra returns 1 on success too
-                    stderr = result.stderr.decode(errors="replace")
+                # SumatraPDF exits 0 on success; treat anything else as
+                # a potential error but only raise if stderr has content.
+                if result.returncode not in (0, 1):
+                    stderr = result.stderr.decode(errors="replace").strip()
                     if stderr:
-                        raise RuntimeError(f"SumatraPDF error: {stderr}")
+                        raise RuntimeError(f"SumatraPDF error (rc={result.returncode}): {stderr}")
+                log.info(f"[Print] SumatraPDF done (rc={result.returncode})")
             else:
-                # Fallback: ShellExecute printto verb
+                # ── Fallback: ShellExecute printto verb (shows dialog) ──────
+                log.warning("[Print] SumatraPDF not found — falling back to ShellExecute")
                 win32api.ShellExecute(
                     0, "printto", file_path,
                     f'"{req.printer_name}"',
                     ".", win32con.SW_HIDE,
                 )
-                time.sleep(6)
+                time.sleep(6)   # give Windows time to spool
 
         elif ext in {".png", ".jpg", ".jpeg"}:
             # Use ShellExecute for images
@@ -453,7 +467,12 @@ def submit_print_job(
         }
 
     def _run():
-        # 1. Download file from backend
+        # 1. Mark as downloading so frontend progress bar advances
+        with _jobs_lock:
+            _jobs[job_id]["status"]  = "downloading"
+            _jobs[job_id]["message"] = "Downloading file from server…"
+
+        # 2. Download file from backend
         try:
             _download_order_file(req.order_id, req.order_token, tmp_path)
         except Exception as exc:
