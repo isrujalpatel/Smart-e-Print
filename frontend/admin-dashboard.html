@@ -484,10 +484,11 @@
 
     // ── Print Agent state ──────────────────────────────────────────────────
     const AGENT_BASE = 'http://127.0.0.1:8765';
-    let _agentToken   = '';          // set from localStorage
-    let _selectedPrinter = null;     // {name, status, is_default}
-    let _printOrderId    = null;     // current order being printed
-    let _pollInterval    = null;     // job status polling timer
+    let _agentToken      = '';          // set from localStorage
+    let _selectedPrinter = null;        // {name, status, is_default}
+    let _printOrderId    = null;        // current order being printed
+    let _pollInterval    = null;        // job status polling timer
+    let _printerList     = [];          // cache of printers from /printers endpoint
 
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -984,13 +985,18 @@
         return;
       }
 
+      // ── Store printers in a JS array — NEVER embed JSON inside onclick="..." ──
+      // Reason: JSON uses double-quotes which break the HTML attribute delimiter.
+      // Solution: pass only a safe integer index; read printer data from _printerList.
+      _printerList = printers;
+
       container.innerHTML = printers.map((p, i) => {
         const statusClass = p.status === 'Ready' ? 'ready'
                           : p.status === 'Offline' ? 'offline' : 'busy';
         const statusIcon  = p.status === 'Ready' ? '●' : p.status === 'Offline' ? '○' : '◌';
         return `
           <div class="printer-card" id="pcard_${i}"
-               onclick="selectPrinter(${JSON.stringify(JSON.stringify(p))}, 'pcard_${i}')">
+               onclick="selectPrinter(${i})">
             <span class="pc-icon"><i class="bi bi-printer-fill"></i></span>
             <div class="pc-info">
               <div class="pc-name">
@@ -1006,10 +1012,12 @@
 
     /**
      * Called when admin clicks a printer card.
-     * Stores the selected printer and enables the Next button.
+     * Reads printer data from _printerList by index — safe, no JSON-in-HTML.
+     * Immediately advances to Step 2 for faster UX.
      */
-    function selectPrinter(printerJsonStr, cardId) {
-      _selectedPrinter = JSON.parse(printerJsonStr);
+    function selectPrinter(index) {
+      _selectedPrinter = _printerList[index];
+      if (!_selectedPrinter) return;
 
       // Highlight selected card
       document.querySelectorAll('.printer-card').forEach(c => {
@@ -1017,7 +1025,7 @@
         const chk = c.querySelector('[id^="pcheck_"]');
         if (chk) chk.classList.add('d-none');
       });
-      const card = document.getElementById(cardId);
+      const card = document.getElementById(`pcard_${index}`);
       if (card) {
         card.classList.add('selected');
         const chk = card.querySelector('[id^="pcheck_"]');
@@ -1025,6 +1033,9 @@
       }
 
       document.getElementById('btnSelectPrinter').disabled = false;
+
+      // Auto-advance to config summary (Step 2) on click — no extra button needed
+      setTimeout(() => gotoStep2(), 150);  // small delay so selection highlight is visible
     }
 
     /** Show only the specified step div. */
