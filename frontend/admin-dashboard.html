@@ -184,6 +184,11 @@
           <i class="bi bi-gear"></i> Rate Card Settings
         </a>
       </li>
+      <li>
+        <a href="#" id="navRevenue" data-bs-toggle="modal" data-bs-target="#revenueModal">
+          <i class="bi bi-currency-rupee"></i> Total Revenue
+        </a>
+      </li>
     </ul>
 
     <div class="sidebar-footer">
@@ -252,9 +257,9 @@
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">Total Revenue</div>
+          <div class="stat-label">Today's Revenue</div>
           <div class="stat-value gradient-text" id="statRevenue">₹0</div>
-          <div class="stat-change neutral">From active orders</div>
+          <div class="stat-change neutral">Orders accepted today</div>
         </div>
       </div>
     </div>
@@ -468,6 +473,127 @@
     </div>
   </div>
 
+  <!-- ── Revenue Modal ──────────────────────────────────────────────────── -->
+  <div class="modal fade" id="revenueModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-card">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title section-title"><i class="bi bi-currency-rupee me-1"></i> Total Revenue</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-2">
+
+          <!-- All-time summary -->
+          <div id="revAlltimeBlock" class="p-3 rounded mb-4" style="background:rgba(99,102,241,.09);border:1.5px solid rgba(99,102,241,.25);">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="text-muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">All-Time Total Revenue</div>
+                <div class="fw-bold gradient-text" id="revAlltimeValue" style="font-size:2rem;">₹—</div>
+              </div>
+              <div class="text-end">
+                <div class="text-muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">Today's Revenue</div>
+                <div class="fw-bold" id="revTodayValue" style="font-size:1.4rem;color:#4ade80;">₹—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter tabs -->
+          <div class="d-flex gap-2 mb-3">
+            <button class="filter-pill active" id="revTabMonth" onclick="switchRevTab('month')">By Month</button>
+            <button class="filter-pill" id="revTabRange" onclick="switchRevTab('range')">Custom Date Range</button>
+          </div>
+
+          <!-- Month picker -->
+          <div id="revMonthBlock">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <input type="month" id="revMonthInput" class="minimal-input" style="max-width:200px;"
+                     value="" />
+              <button class="btn btn-primary btn-sm" id="btnRevMonth" onclick="loadRevenue('month')">
+                <i class="bi bi-search me-1"></i>Get Revenue
+              </button>
+            </div>
+          </div>
+
+          <!-- Date range picker -->
+          <div id="revRangeBlock" class="d-none">
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+              <input type="date" id="revStartDate" class="minimal-input" style="max-width:170px;" />
+              <span class="text-muted">to</span>
+              <input type="date" id="revEndDate" class="minimal-input" style="max-width:170px;" />
+              <button class="btn btn-primary btn-sm" id="btnRevRange" onclick="loadRevenue('range')">
+                <i class="bi bi-search me-1"></i>Get Revenue
+              </button>
+            </div>
+          </div>
+
+          <!-- Results panel -->
+          <div id="revResultsPanel" class="d-none">
+            <div class="text-muted small mb-2" id="revRangeLabel"></div>
+            <div class="row g-3">
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);">
+                  <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;">Total Revenue</div>
+                  <div class="fw-bold gradient-text" id="revResTotal" style="font-size:1.4rem;">₹0</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);">
+                  <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;">B&amp;W Revenue</div>
+                  <div class="fw-bold" id="revResBW" style="font-size:1.4rem;color:#94a3b8;">₹0</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);">
+                  <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;">Color Revenue</div>
+                  <div class="fw-bold" id="revResColor" style="font-size:1.4rem;color:#facc15;">₹0</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);">
+                  <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;">Paid Orders</div>
+                  <div class="fw-bold" id="revResPaidOrders" style="font-size:1.4rem;color:#4ade80;">0</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);">
+                  <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;">Total Orders</div>
+                  <div class="fw-bold" id="revResTotalOrders" style="font-size:1.4rem;">0</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 rounded" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);">
+                  <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;">Pages Printed</div>
+                  <div class="fw-bold" id="revResPages" style="font-size:1.4rem;color:#c084fc;">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border-color:rgba(255,255,255,.1);margin:20px 0;" />
+
+          <!-- Backup & Cleanup section -->
+          <div>
+            <div class="fw-semibold mb-1" style="font-size:.9rem;"><i class="bi bi-archive me-1 text-primary"></i> File Backup &amp; Cleanup</div>
+            <p class="text-muted" style="font-size:.8rem;margin-bottom:10px;">Download all customer-uploaded files from the last 7 days as a ZIP archive, then free up disk space by deleting files older than 7 days.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-outline-info btn-sm" id="btnDownloadBackup" onclick="downloadBackupZip()">
+                <i class="bi bi-file-zip me-1"></i>Download Last 7 Days (ZIP)
+              </button>
+              <button class="btn btn-outline-warning btn-sm" id="btnCleanupFiles" onclick="cleanupOldFiles()">
+                <i class="bi bi-trash me-1"></i>Delete Files Older than 7 Days
+              </button>
+            </div>
+            <div id="cleanupMsg" class="mt-2" style="font-size:.82rem;"></div>
+          </div>
+
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
@@ -509,6 +635,22 @@
       detailsModalInstance = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
       settingsModalInstance = new bootstrap.Modal(document.getElementById('settingsModal'));
       printAgentModalInstance = new bootstrap.Modal(document.getElementById('printAgentModal'));
+      const revenueModalEl = document.getElementById('revenueModal');
+      const revenueModalInstance = new bootstrap.Modal(revenueModalEl);
+
+      // Set default month input to current month
+      const now = new Date();
+      const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      document.getElementById('revMonthInput').value = ym;
+      // Set default date range to this month
+      const firstDay = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+      const lastDay  = new Date(now.getFullYear(), now.getMonth()+1, 0);
+      const lastDayStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
+      document.getElementById('revStartDate').value = firstDay;
+      document.getElementById('revEndDate').value = lastDayStr;
+
+      // Load all-time + today revenue when modal opens
+      revenueModalEl.addEventListener('show.bs.modal', loadRevenueAlltime);
 
       // Load agent token from localStorage
       _agentToken = localStorage.getItem('seprint_agent_token') || 'seprint-agent-secret-2026';
@@ -560,7 +702,8 @@
         document.getElementById('statPending').textContent = s.submitted;
         document.getElementById('statPrinting').textContent = s.printing;
         document.getElementById('statCompleted').textContent = s.completed;
-        document.getElementById('statRevenue').textContent = `₹${s.total_revenue.toFixed(2)}`;
+        // Stat card shows TODAY'S revenue
+        document.getElementById('statRevenue').textContent = `₹${s.today_revenue.toFixed(2)}`;
       }
     }
 
@@ -569,13 +712,16 @@
       const submitted  = cachedOrders.filter(o => o.status === 'Submitted').length;
       const printing   = cachedOrders.filter(o => o.status === 'Printing').length;
       const completed  = cachedOrders.filter(o => o.status === 'Completed').length;
-      const revenue    = cachedOrders
-        .filter(o => ['Accepted','Printing','Completed'].includes(o.status))
+      // Today's revenue from cache
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      const todayRevenue = cachedOrders
+        .filter(o => ['Accepted','Printing','Completed'].includes(o.status) && new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total_price || 0), 0);
       document.getElementById('statPending').textContent   = submitted;
       document.getElementById('statPrinting').textContent  = printing;
       document.getElementById('statCompleted').textContent = completed;
-      document.getElementById('statRevenue').textContent   = `₹${revenue.toFixed(2)}`;
+      document.getElementById('statRevenue').textContent   = `₹${todayRevenue.toFixed(2)}`;
     }
 
     async function loadRatesToModal() {
@@ -1205,6 +1351,148 @@
       document.getElementById('jobStatusIcon').textContent    = icons[job.status]  || '⏳';
       document.getElementById('jobStatusTitle').textContent   = titles[job.status] || job.status;
       document.getElementById('jobStatusMessage').textContent = job.message || '';
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       REVENUE MODAL
+       ═══════════════════════════════════════════════════════════════ */
+
+    /** Load all-time + today revenue into the top banner of the modal. */
+    async function loadRevenueAlltime() {
+      document.getElementById('revAlltimeValue').textContent = '₹…';
+      document.getElementById('revTodayValue').textContent   = '₹…';
+      const { ok, data } = await apiCall('/orders/revenue', 'GET');
+      if (ok && data) {
+        document.getElementById('revAlltimeValue').textContent = `₹${data.alltime_revenue.toFixed(2)}`;
+        document.getElementById('revTodayValue').textContent   = `₹${data.today_revenue.toFixed(2)}`;
+      } else {
+        document.getElementById('revAlltimeValue').textContent = '₹—';
+        document.getElementById('revTodayValue').textContent   = '₹—';
+      }
+    }
+
+    /** Switch between month picker and date range picker tabs. */
+    function switchRevTab(tab) {
+      document.getElementById('revTabMonth').classList.toggle('active', tab === 'month');
+      document.getElementById('revTabRange').classList.toggle('active', tab === 'range');
+      document.getElementById('revMonthBlock').classList.toggle('d-none', tab !== 'month');
+      document.getElementById('revRangeBlock').classList.toggle('d-none', tab !== 'range');
+      document.getElementById('revResultsPanel').classList.add('d-none');
+    }
+
+    /** Query the /orders/revenue endpoint and render results. */
+    async function loadRevenue(mode) {
+      let url = '/orders/revenue';
+      if (mode === 'month') {
+        const month = document.getElementById('revMonthInput').value;
+        if (!month) { showToast('Please select a month.', 'error'); return; }
+        url += `?month=${month}`;
+      } else {
+        const s = document.getElementById('revStartDate').value;
+        const e = document.getElementById('revEndDate').value;
+        if (!s || !e) { showToast('Please select both start and end dates.', 'error'); return; }
+        url += `?start_date=${s}&end_date=${e}`;
+      }
+
+      const btn = mode === 'month'
+        ? document.getElementById('btnRevMonth')
+        : document.getElementById('btnRevRange');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading…';
+
+      const { ok, data } = await apiCall(url, 'GET');
+      btn.disabled = false;
+      btn.innerHTML = origText;
+
+      if (!ok) {
+        showToast(data?.error || 'Failed to load revenue data.', 'error');
+        return;
+      }
+
+      // Populate results
+      document.getElementById('revRangeLabel').textContent = `Showing data for: ${data.range_label}`;
+      document.getElementById('revResTotal').textContent       = `₹${data.total_revenue.toFixed(2)}`;
+      document.getElementById('revResBW').textContent          = `₹${data.bw_revenue.toFixed(2)}`;
+      document.getElementById('revResColor').textContent       = `₹${data.color_revenue.toFixed(2)}`;
+      document.getElementById('revResPaidOrders').textContent  = data.paid_orders;
+      document.getElementById('revResTotalOrders').textContent = data.total_orders;
+      document.getElementById('revResPages').textContent       = data.total_pages;
+      document.getElementById('revResultsPanel').classList.remove('d-none');
+
+      // Also update the banner totals
+      document.getElementById('revAlltimeValue').textContent = `₹${data.alltime_revenue.toFixed(2)}`;
+      document.getElementById('revTodayValue').textContent   = `₹${data.today_revenue.toFixed(2)}`;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       FILE BACKUP & CLEANUP
+       ═══════════════════════════════════════════════════════════════ */
+
+    /** Download the last-7-days backup ZIP directly from the API. */
+    async function downloadBackupZip() {
+      const btn = document.getElementById('btnDownloadBackup');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparing ZIP…';
+
+      try {
+        const response = await fetch(`${CONFIG.API_BASE}/orders/backup-zip`, {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          showToast(errData.error || 'Failed to generate backup ZIP.', 'error');
+          return;
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+
+        // Try to get filename from Content-Disposition header
+        const cd = response.headers.get('Content-Disposition') || '';
+        const match = cd.match(/filename="?([^"]+)"?/);
+        a.download = match ? match[1] : `seprint_backup_last7days.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showToast('✅ Backup ZIP downloaded successfully.', 'success');
+      } catch (err) {
+        showToast('Network error while downloading backup.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    /** Call the cleanup endpoint to delete files older than 7 days from disk. */
+    async function cleanupOldFiles() {
+      const msgEl = document.getElementById('cleanupMsg');
+      const btn = document.getElementById('btnCleanupFiles');
+      const origText = btn.innerHTML;
+
+      if (!confirm('This will permanently delete all uploaded files older than 7 days from the server disk. Database records will be preserved. Continue?')) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Cleaning…';
+      msgEl.textContent = '';
+
+      const { ok, data } = await apiCall('/orders/cleanup', 'POST');
+      btn.disabled = false;
+      btn.innerHTML = origText;
+
+      if (ok && data) {
+        msgEl.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</span>`;
+        showToast('Storage cleanup complete.', 'success');
+      } else {
+        msgEl.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>${data?.error || 'Cleanup failed.'}</span>`;
+        showToast('Cleanup failed.', 'error');
+      }
     }
   </script>
 </body>

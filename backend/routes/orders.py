@@ -1,7 +1,10 @@
+import io
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+import zipfile
+from datetime import datetime, timezone, timedelta
+from calendar import monthrange
 
 from flask import Blueprint, request, jsonify, current_app, send_file
 from werkzeug.utils import secure_filename
@@ -394,7 +397,7 @@ def get_order_stats(current_user):
     rejected = sum(1 for o in orders if o.status == 'Rejected')
 
     total_revenue = sum(o.total_price for o in orders if o.status in {'Accepted', 'Printing', 'Completed'})
-    
+
     # Today's orders
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_orders = [o for o in orders if o.created_at and o.created_at >= today_start]
@@ -412,4 +415,199 @@ def get_order_stats(current_user):
             "today_revenue": round(today_revenue, 2),
             "today_orders": len(today_orders),
         }
+    }), 200
+
+
+# ── GET /api/orders/revenue ─────────────────────────────────────────────────
+@orders_bp.route('/revenue', methods=['GET'])
+@role_required('admin', 'super_admin')
+def get_revenue(current_user):
+    """
+    Detailed revenue report (exact numbers, no charts).
+    Query params (choose one mode):
+      - month=YYYY-MM  → revenue for that calendar month
+      - start_date=YYYY-MM-DD&end_date=YYYY-MM-DD → arbitrary range
+      - (none)         → all-time totals
+    """
+    month_param = request.args.get('month', '').strip()          # e.g. "2026-10"
+    start_param = request.args.get('start_date', '').strip()     # e.g. "2026-10-01"
+    end_param   = request.args.get('end_date',   '').strip()     # e.g. "2026-10-14"
+
+    now_utc = datetime.now(timezone.utc)
+
+    # ── Determine date window ──────────────────────────────────────────────
+    range_label = "All Time"
+    range_start = None
+    range_end   = None
+
+    if month_param:
+        try:
+            year, mon = map(int, month_param.split('-'))
+            _, last_day = monthrange(year, mon)
+            range_start = datetime(year, mon, 1, 0, 0, 0, tzinfo=timezone.utc)
+            range_end   = datetime(year, mon, last_day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+            range_label = datetime(year, mon, 1).strftime('%B %Y')
+        except Exception:
+            return jsonify({"error": "Invalid month format. Use YYYY-MM."}), 400
+
+    elif start_param and end_param:
+        try:
+            range_start = datetime.strptime(start_param, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+            range_end   = datetime.strptime(end_param,   '%Y-%m-%d').replace(
+                hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+            if range_end < range_start:
+                return jsonify({"error": "end_date must be on or after start_date."}), 400
+            range_label = f"{start_param} to {end_param}"
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
+
+    # ── Fetch and filter orders ────────────────────────────────────────────
+    REVENUE_STATUSES = {'Accepted', 'Printing', 'Completed'}
+    all_orders = PrintOrder.query.all()
+
+    if range_start and range_end:
+        period_orders = [
+            o for o in all_orders
+            if o.created_at and range_start <= o.created_at <= range_end
+        ]
+    else:
+        period_orders = all_orders
+
+    revenue_orders = [o for o in period_orders if o.status in REVENUE_STATUSES]
+
+    total_revenue   = round(sum(o.total_price for o in revenue_orders), 2)
+    bw_revenue      = round(sum(o.total_price for o in revenue_orders if o.print_mode == 'bw'), 2)
+    color_revenue   = round(sum(o.total_price for o in revenue_orders if o.print_mode == 'color'), 2)
+    total_orders_ct = len(period_orders)
+    paid_orders_ct  = len(revenue_orders)
+    total_pages     = sum(o.printed_pages * o.copies for o in revenue_orders)
+
+    # Today (always show regardless of filter)
+    today_start = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_orders_rev = [
+        o for o in all_orders
+        if o.created_at and o.created_at >= today_start and o.status in REVENUE_STATUSES
+    ]
+    today_revenue = round(sum(o.total_price for o in today_orders_rev), 2)
+
+    # All-time total (always)
+    alltime_revenue = round(sum(o.total_price for o in all_orders if o.status in REVENUE_STATUSES), 2)
+
+    return jsonify({
+        "range_label":      range_label,
+        "range_start":      range_start.isoformat() if range_start else None,
+        "range_end":        range_end.isoformat()   if range_end   else None,
+        "total_revenue":    total_revenue,
+        "bw_revenue":       bw_revenue,
+        "color_revenue":    color_revenue,
+        "total_orders":     total_orders_ct,
+        "paid_orders":      paid_orders_ct,
+        "total_pages":      total_pages,
+        "today_revenue":    today_revenue,
+        "alltime_revenue":  alltime_revenue,
+    }), 200
+
+
+# ── GET /api/orders/backup-zip ──────────────────────────────────────────────
+@orders_bp.route('/backup-zip', methods=['GET'])
+@role_required('admin', 'super_admin')
+def download_backup_zip(current_user):
+    """
+    Admin downloads a ZIP file containing all customer-uploaded files
+    from the last 7 days (orders created within the past 7 days).
+    Files that no longer exist on disk are silently skipped.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    recent_orders = [
+        o for o in PrintOrder.query.all()
+        if o.created_at and o.created_at >= cutoff
+    ]
+
+    zip_buffer = io.BytesIO()
+    files_added = 0
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for order in recent_orders:
+            if order.file_path and os.path.exists(order.file_path):
+                # Name inside ZIP: YYYY-MM-DD_CustomerName_filename
+                date_str = order.created_at.strftime('%Y-%m-%d') if order.created_at else 'unknown'
+                c_name   = (order.customer_name or 'customer').replace(' ', '_')
+                arcname  = f"{date_str}_{c_name}_{order.file_name}"
+                zf.write(order.file_path, arcname)
+                files_added += 1
+
+    zip_buffer.seek(0)
+
+    today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    zip_filename = f"seprint_backup_{today_str}_last7days.zip"
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    try:
+        from models.audit_log import AuditLog
+        AuditLog.log(
+            action="BACKUP_ZIP_DOWNLOADED",
+            user=current_user,
+            details=f"Admin downloaded backup ZIP with {files_added} file(s) (last 7 days)",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
+
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=zip_filename,
+    )
+
+
+# ── POST /api/orders/cleanup ────────────────────────────────────────────────
+@orders_bp.route('/cleanup', methods=['POST'])
+@role_required('admin', 'super_admin')
+def cleanup_old_files(current_user):
+    """
+    Delete physical files for orders older than 7 days from disk.
+    The database record is preserved but file_path is cleared.
+    This frees storage while keeping order history intact.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    old_orders = [
+        o for o in PrintOrder.query.all()
+        if o.created_at and o.created_at < cutoff and o.file_path
+    ]
+
+    deleted_count = 0
+    already_gone  = 0
+
+    for order in old_orders:
+        if os.path.exists(order.file_path):
+            try:
+                os.remove(order.file_path)
+                deleted_count += 1
+            except OSError as e:
+                print(f"[WARN] Could not delete {order.file_path}: {e}")
+        else:
+            already_gone += 1
+        order.file_path = ''   # clear path — file is gone
+
+    from extensions import db as _db
+    _db.session.commit()
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    try:
+        from models.audit_log import AuditLog
+        AuditLog.log(
+            action="OLD_FILES_CLEANED",
+            user=current_user,
+            details=f"Cleanup: {deleted_count} file(s) deleted, {already_gone} already missing (orders >7 days)",
+            ip_address=ip_addr,
+        )
+    except Exception as log_err:
+        print(f"[WARN] AuditLog failed (non-fatal): {log_err}")
+
+    return jsonify({
+        "message": f"Cleanup complete. {deleted_count} file(s) deleted from disk. {already_gone} were already missing.",
+        "deleted_files": deleted_count,
+        "already_missing": already_gone,
+        "total_processed": len(old_orders),
     }), 200

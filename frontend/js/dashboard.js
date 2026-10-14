@@ -313,7 +313,7 @@ function getPageCount(file) {
 }
 
 function fmtBytes(b) {
-  return b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(2)} MB`;
+  return b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(2)} MB`;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -344,8 +344,8 @@ function renderFileConfigs() {
           <div class="s-info"><div class="s-label">${t('print_mode')}</div><div class="s-desc">${t('color_or_mono')}</div></div>
           <div class="s-control">
             <div class="pill-group">
-              <div class="pill ${file.mode.startsWith('bw')?'active':''}" onclick="updateFileMode('${file.id}','bw')">${t('bw')}</div>
-              <div class="pill ${file.mode.startsWith('color')?'active':''}" onclick="updateFileMode('${file.id}','color')">${t('color')}</div>
+              <div class="pill ${file.mode.startsWith('bw') ? 'active' : ''}" onclick="updateFileMode('${file.id}','bw')">${t('bw')}</div>
+              <div class="pill ${file.mode.startsWith('color') ? 'active' : ''}" onclick="updateFileMode('${file.id}','color')">${t('color')}</div>
             </div>
           </div>
         </div>
@@ -367,9 +367,9 @@ function renderFileConfigs() {
           <div class="s-info"><div class="s-label">${t('paper_size')}</div><div class="s-desc">${t('select_size')}</div></div>
           <div class="s-control">
             <select class="mini-select" onchange="updateFile('${file.id}','paperSize',this.value)">
-              <option value="A4" ${file.paperSize==='A4'?'selected':''}>A4</option>
-              <option value="A3" ${file.paperSize==='A3'?'selected':''}>A3</option>
-              <option value="Letter" ${file.paperSize==='Letter'?'selected':''}>Letter</option>
+              <option value="A4" ${file.paperSize === 'A4' ? 'selected' : ''}>A4</option>
+              <option value="A3" ${file.paperSize === 'A3' ? 'selected' : ''}>A3</option>
+              <option value="Letter" ${file.paperSize === 'Letter' ? 'selected' : ''}>Letter</option>
             </select>
           </div>
         </div>
@@ -379,8 +379,8 @@ function renderFileConfigs() {
           <div class="s-info"><div class="s-label">${t('sides')}</div><div class="s-desc">${t('one_or_both')}</div></div>
           <div class="s-control">
             <div class="pill-group">
-              <div class="pill ${file.mode.endsWith('one')?'active':''}" onclick="updateFileSides('${file.id}','one')">${t('one')}</div>
-              <div class="pill ${file.mode.endsWith('both')?'active':''}" onclick="updateFileSides('${file.id}','both')">${t('both')}</div>
+              <div class="pill ${file.mode.endsWith('one') ? 'active' : ''}" onclick="updateFileSides('${file.id}','one')">${t('one')}</div>
+              <div class="pill ${file.mode.endsWith('both') ? 'active' : ''}" onclick="updateFileSides('${file.id}','both')">${t('both')}</div>
             </div>
           </div>
         </div>
@@ -399,11 +399,11 @@ function updateFile(id, key, val) {
 }
 function updateFileMode(id, base) {
   const f = uploadedFiles.find(x => x.id === id);
-  if (f) { f.mode = `${base}_${f.mode.endsWith('both')?'both':'one'}`; renderFileConfigs(); }
+  if (f) { f.mode = `${base}_${f.mode.endsWith('both') ? 'both' : 'one'}`; renderFileConfigs(); }
 }
 function updateFileSides(id, side) {
   const f = uploadedFiles.find(x => x.id === id);
-  if (f) { f.mode = `${f.mode.startsWith('color')?'color':'bw'}_${side}`; renderFileConfigs(); }
+  if (f) { f.mode = `${f.mode.startsWith('color') ? 'color' : 'bw'}_${side}`; renderFileConfigs(); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -460,7 +460,7 @@ async function submitMainOrder() {
   }
   let total = 0;
   uploadedFiles.forEach(f => {
-    total += f.pages * f.copies * (PRICE_RATES[f.mode]||2) * (PAPER_MULTIPLIERS[f.paperSize]||1);
+    total += f.pages * f.copies * (PRICE_RATES[f.mode] || 2) * (PAPER_MULTIPLIERS[f.paperSize] || 1);
   });
   if (currentPaymentMethod === 'online') initRazorpayFlow(total, scheduleTimeStr);
   else executeOrderSubmission(scheduleTimeStr, 'pending');
@@ -478,7 +478,7 @@ function initRazorpayFlow(amount, scheduleTimeStr) {
     });
     rzp.on('payment.failed', r => showToast(`Payment Failed: ${r.error.description}`, 'error'));
     rzp.open();
-  } catch(e) {
+  } catch (e) {
     console.warn("Razorpay open failed, simulating success.");
     executeOrderSubmission(scheduleTimeStr, 'paid');
   }
@@ -524,7 +524,7 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
 
       if (!res.ok) {
         let errMsg = `Failed to submit: ${file.name}`;
-        try { const e = await res.json(); if (e?.error) errMsg = e.error; } catch (_) {}
+        try { const e = await res.json(); if (e?.error) errMsg = e.error; } catch (_) { }
         markRowFailed(tempId, file.name);
         showToast(errMsg, 'error');
         continue;
@@ -555,7 +555,7 @@ function injectSubmittedRow(tempId, file, estimatedCost, paymentMethod) {
   tr.innerHTML = `
     <td>
       <strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(file.name)}</strong>
-      <small style="color:var(--text-muted);">${file.copies} × ${file.mode.startsWith('color')?'color':'bw'} · ${file.paperSize}</small>
+      <small style="color:var(--text-muted);">${file.copies} × ${file.mode.startsWith('color') ? 'color' : 'bw'} · ${file.paperSize}</small>
     </td>
     <td><strong style="color:var(--success);">₹${estimatedCost.toFixed(2)}</strong></td>
     <td>${payLabel}</td>
@@ -573,7 +573,7 @@ function finaliseRow(tempId, order) {
   const pay = order.payment_status === 'paid'
     ? `<span style="color:var(--success);font-weight:600;">Paid</span>`
     : `<span style="color:#eab308;font-weight:600;">Pending</span>`;
-  const canCancel = ['Submitted','Accepted'].includes(order.status);
+  const canCancel = ['Submitted', 'Accepted'].includes(order.status);
   const action = canCancel
     ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${order.id}')">${t('cancel')}</button>`
     : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
@@ -584,7 +584,7 @@ function finaliseRow(tempId, order) {
   tr.innerHTML = `
     <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(order.file_name)}</strong>
         <small style="color:var(--text-muted);">${order.copies} × ${order.print_mode} · ${order.paper_size}</small></td>
-    <td><strong style="color:var(--success);">₹${(order.total_price||0).toFixed(2)}</strong></td>
+    <td><strong style="color:var(--success);">₹${(order.total_price || 0).toFixed(2)}</strong></td>
     <td>${pay}</td>
     <td><span class="badge-status badge-${order.status}">${order.status}</span></td>
     <td>${order.schedule_time || '—'}</td>
@@ -661,7 +661,7 @@ async function loadCustomerOrders(isAutoRefresh = false) {
         _knownOrderIds.add(o.id);
       });
     }
-  } catch(e) {
+  } catch (e) {
     if (!isAutoRefresh) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--danger);">${t('load_error')}</td></tr>`;
     }
@@ -674,14 +674,14 @@ function buildOrderRow(o) {
   const pay = o.payment_status === 'paid'
     ? `<span style="color:var(--success);font-weight:600;">Paid</span>`
     : `<span style="color:#eab308;font-weight:600;">Pending</span>`;
-  const canCancel = ['Submitted','Accepted'].includes(o.status);
+  const canCancel = ['Submitted', 'Accepted'].includes(o.status);
   const action = canCancel
     ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${o.id}')">${t('cancel')}</button>`
     : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
   tr.innerHTML = `
     <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.file_name)}</strong>
         <small style="color:var(--text-muted);">${o.copies} × ${o.print_mode} · ${o.paper_size}</small></td>
-    <td><strong style="color:var(--success);">₹${(o.total_price||0).toFixed(2)}</strong></td>
+    <td><strong style="color:var(--success);">₹${(o.total_price || 0).toFixed(2)}</strong></td>
     <td>${pay}</td>
     <td><span class="badge-status badge-${o.status}">${o.status}</span></td>
     <td>${o.schedule_time || '—'}</td>
@@ -709,12 +709,12 @@ async function cancelOrder(id) {
     const data = await res.json();
     if (res.ok) { showToast(data.message || 'Order cancelled.', 'success'); loadCustomerOrders(); }
     else { showToast(data.error || 'Failed to cancel.', 'error'); }
-  } catch(e) { showToast('Failed to cancel.', 'error'); }
+  } catch (e) { showToast('Failed to cancel.', 'error'); }
 }
 
 function esc(s) {
   if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -822,7 +822,7 @@ async function saveNewName() {
     } else {
       showToast(data.error || 'Failed to update name.', 'error');
     }
-  } catch(e) {
+  } catch (e) {
     showToast('Network error. Please try again.', 'error');
   }
   btn.disabled = false;
@@ -855,7 +855,7 @@ async function saveNewPassword() {
     } else {
       showToast(data.error || 'Failed to change password.', 'error');
     }
-  } catch(e) {
+  } catch (e) {
     showToast('Network error. Please try again.', 'error');
   }
   btn.disabled = false;
