@@ -4,8 +4,71 @@
  */
 
 const UPLOAD_MAX = 25 * 1024 * 1024;
+
+// ── Live rate card — fetched from backend on init ────────────────────────────
+let RATE_CARD = { A4: { bw: 2.0, color: 5.0 }, A3: { bw: 10.0, color: 10.0 }, Letter: { bw: 2.5, color: 6.0 } };
+
+// Legacy compat wrappers (computed from RATE_CARD)
 let PRICE_RATES = { bw_one: 2.0, bw_both: 2.0, color_one: 5.0, color_both: 5.0 };
 let PAPER_MULTIPLIERS = { A4: 1.0, A3: 1.5, Letter: 1.1 };
+
+function _rebuildLegacyRates() {
+  // Build flat rates for each mode+side combo from RATE_CARD
+  const a4 = RATE_CARD['A4'] || { bw: 2.0, color: 5.0 };
+  PRICE_RATES = {
+    bw_one: a4.bw, bw_both: a4.bw,
+    color_one: a4.color, color_both: a4.color,
+  };
+  PAPER_MULTIPLIERS = {};
+  for (const [paper, modes] of Object.entries(RATE_CARD)) {
+    PAPER_MULTIPLIERS[paper] = a4.bw > 0 ? modes.bw / a4.bw : 1.0;
+  }
+}
+
+/** Compute cost for a file using live rates directly from RATE_CARD */
+function computeFileCost(file) {
+  const modeKey = file.mode.startsWith('color') ? 'color' : 'bw';
+  const paper = file.paperSize || 'A4';
+  const rates = RATE_CARD[paper] || RATE_CARD['A4'] || { bw: 2.0, color: 5.0 };
+  const rate = rates[modeKey] || 2.0;
+  const printedPages = file.printedPages != null ? file.printedPages : file.pages;
+  return printedPages * file.copies * rate;
+}
+
+async function fetchLiveRates() {
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/shop/rates`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.rate_card && typeof data.rate_card === 'object') {
+      RATE_CARD = data.rate_card;
+      _rebuildLegacyRates();
+      updatePriceTable();
+      updatePaperSizeOptions();
+    }
+  } catch (e) { console.warn('Failed to fetch live rates:', e); }
+}
+
+/** Update the visible price table with live rates */
+function updatePriceTable() {
+  const tbody = document.querySelector('.price-table tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  for (const [paper, modes] of Object.entries(RATE_CARD)) {
+    const bw = modes.bw != null ? modes.bw : 2.0;
+    const color = modes.color != null ? modes.color : 5.0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${paper}</td><td>₹${bw.toFixed(2)}</td><td>₹${bw.toFixed(2)}</td><td>₹${color.toFixed(2)}</td><td>₹${color.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+/** Update paper size select options in all file config cards */
+function updatePaperSizeOptions() {
+  // This will be called when rates are loaded — file configs re-render will pick up new options
+  if (uploadedFiles.length > 0) renderFileConfigs();
+}
+
 
 let uploadedFiles = [];
 let fileCounter = 0;
@@ -170,6 +233,7 @@ async function initDashboard(requiredRole) {
   setupNavControls();
   setupUploadZone();
   setupProfileModals();
+  await fetchLiveRates();     // ← Fetch live rates from backend
   loadCustomerOrders();
   startCustomerAutoRefresh();
   return user;
@@ -272,7 +336,8 @@ function setupUploadZone() {
       const pages = await getPageCount(file);
       uploadedFiles.push({
         id: `f_${fileCounter++}`, fileObj: file, name: file.name,
-        size: file.size, pages, copies: 1, mode: 'bw_one', paperSize: 'A4'
+        size: file.size, pages, copies: 1, mode: 'bw_one', paperSize: 'A4',
+        rangeType: 'full', pageRange: '', printedPages: pages
       });
     }
     fileInput.value = '';
@@ -301,13 +366,26 @@ function renderUploadedFilesList() {
 
 function getPageCount(file) {
   return new Promise(resolve => {
-    if (file.type !== 'application/pdf') { resolve(1); return; }
+    const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+    if (!isPdf) { resolve(1); return; }
     const reader = new FileReader();
     reader.onload = () => {
-      const txt = new TextDecoder('latin1').decode(reader.result);
-      const m = txt.match(/\/Type\s*\/Page\b/g);
-      resolve(m ? m.length : 1);
+      try {
+        const txt = new TextDecoder('latin1').decode(reader.result);
+        const matches = txt.match(/\/Type\s*\/Page\b/g);
+        if (matches && matches.length > 0) {
+          resolve(matches.length);
+          return;
+        }
+        const countMatch = txt.match(/\/Count\s+(\d+)/);
+        if (countMatch && parseInt(countMatch[1], 10) > 0) {
+          resolve(parseInt(countMatch[1], 10));
+          return;
+        }
+      } catch (_) {}
+      resolve(1);
     };
+    reader.onerror = () => resolve(1);
     reader.readAsArrayBuffer(file);
   });
 }
@@ -326,16 +404,32 @@ function renderFileConfigs() {
   if (uploadedFiles.length === 0) { checkout.style.display = 'none'; return; }
   checkout.style.display = 'block';
 
+  // Build paper size options from RATE_CARD
+  const paperOptions = Object.keys(RATE_CARD).map(p =>
+    `<option value="${p}">${p}</option>`
+  ).join('');
+
   uploadedFiles.forEach(file => {
+    const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.fileObj?.type === 'application/pdf';
+    const fileCost = computeFileCost(file);
+
+    // Build paper select with correct selected
+    const paperSelect = Object.keys(RATE_CARD).map(p =>
+      `<option value="${p}" ${file.paperSize === p ? 'selected' : ''}>${p}</option>`
+    ).join('');
+
     const box = document.createElement('div');
     box.className = 'file-config-box';
     box.innerHTML = `
       <div class="file-config-header">
         <div>
           <h6><i class="bi bi-file-earmark-text" style="margin-right:6px;"></i>${esc(file.name)}</h6>
-          <small style="color:var(--text-muted);">${file.pages} pg · ${fmtBytes(file.size)}</small>
+          <small id="fileMeta_${file.id}" style="color:var(--text-muted);">${file.pages} pg · ${fmtBytes(file.size)}${file.rangeType === 'custom' && file.printedPages !== file.pages ? ` · <strong style="color:var(--accent);">${file.printedPages} pages selected</strong>` : ''}</small>
         </div>
-        <button class="remove-btn" onclick="removeFile('${file.id}')"><i class="bi bi-x-circle"></i> ${t('remove')}</button>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="fileCost_${file.id}" style="font-weight:700;font-size:.9rem;color:var(--success,#22c55e);">₹${fileCost.toFixed(2)}</span>
+          <button class="remove-btn" onclick="removeFile('${file.id}')"><i class="bi bi-x-circle"></i> ${t('remove')}</button>
+        </div>
       </div>
       <div class="file-settings-row">
         <!-- Print Mode -->
@@ -367,9 +461,7 @@ function renderFileConfigs() {
           <div class="s-info"><div class="s-label">${t('paper_size')}</div><div class="s-desc">${t('select_size')}</div></div>
           <div class="s-control">
             <select class="mini-select" onchange="updateFile('${file.id}','paperSize',this.value)">
-              <option value="A4" ${file.paperSize === 'A4' ? 'selected' : ''}>A4</option>
-              <option value="A3" ${file.paperSize === 'A3' ? 'selected' : ''}>A3</option>
-              <option value="Letter" ${file.paperSize === 'Letter' ? 'selected' : ''}>Letter</option>
+              ${paperSelect}
             </select>
           </div>
         </div>
@@ -385,6 +477,37 @@ function renderFileConfigs() {
           </div>
         </div>
       </div>
+      ${isPdf ? `
+      <!-- Page Range -->
+      <div class="page-range-section" style="padding:12px 16px 16px;border-top:1px solid var(--hairline,#e2e5ea);margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="s-icon" style="flex-shrink:0;"><i class="bi bi-journal-bookmark"></i></div>
+          <div style="flex:1;min-width:120px;">
+            <div class="s-label" style="font-weight:600;font-size:.84rem;">Page Range</div>
+            <div class="s-desc" style="font-size:.75rem;color:var(--text-muted);">Choose which pages to print</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div class="pill-group">
+              <div class="pill ${file.rangeType === 'full' ? 'active' : ''}" onclick="setFileRange('${file.id}','full')">All Pages</div>
+              <div class="pill ${file.rangeType === 'custom' ? 'active' : ''}" onclick="setFileRange('${file.id}','custom')">Custom</div>
+            </div>
+          </div>
+        </div>
+        ${file.rangeType === 'custom' ? `
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <input type="text" class="mini-select" id="pageRangeInput_${file.id}" value="${esc(file.pageRange)}"
+                 placeholder="e.g. 1-3, 5, 8-10" style="flex:1;min-width:150px;font-size:.82rem;padding:8px 12px;border-radius:8px;"
+                 onchange="parsePageRange('${file.id}', this.value)" onkeyup="parsePageRange('${file.id}', this.value)" />
+          <span class="page-range-info" id="rangeInfo_${file.id}" style="font-size:.75rem;font-weight:600;color:var(--accent,#2563eb);white-space:nowrap;">
+            ${file.printedPages} of ${file.pages} pages
+          </span>
+        </div>
+        <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">
+          Use commas to separate ranges. Example: <strong>1-5, 8, 12-15</strong> (max ${file.pages} pages)
+        </div>
+        ` : ''}
+      </div>
+      ` : ''}
     `;
     container.appendChild(box);
   });
@@ -404,6 +527,66 @@ function updateFileMode(id, base) {
 function updateFileSides(id, side) {
   const f = uploadedFiles.find(x => x.id === id);
   if (f) { f.mode = `${f.mode.startsWith('color') ? 'color' : 'bw'}_${side}`; renderFileConfigs(); }
+}
+
+function setFileRange(id, type) {
+  const f = uploadedFiles.find(x => x.id === id);
+  if (!f) return;
+  f.rangeType = type;
+  if (type === 'full') {
+    f.printedPages = f.pages;
+    f.pageRange = '';
+  } else {
+    if (!f.pageRange) f.pageRange = `1-${f.pages}`;
+    f.printedPages = parsePageRangeString(f.pageRange, f.pages);
+  }
+  renderFileConfigs();
+}
+
+function parsePageRangeString(rangeStr, maxPages) {
+  if (!rangeStr || !rangeStr.trim()) return maxPages || 1;
+  const parts = rangeStr.split(',');
+  const selectedPages = new Set();
+  for (let part of parts) {
+    part = part.trim();
+    if (!part) continue;
+    if (part.includes('-')) {
+      const [startStr, endStr] = part.split('-');
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        const limit = maxPages > 1 ? Math.min(maxPages, end) : end;
+        for (let p = Math.max(1, start); p <= limit; p++) {
+          selectedPages.add(p);
+        }
+      }
+    } else {
+      const page = parseInt(part, 10);
+      if (!isNaN(page) && page >= 1) {
+        if (maxPages <= 1 || page <= maxPages) {
+          selectedPages.add(page);
+        }
+      }
+    }
+  }
+  return selectedPages.size > 0 ? selectedPages.size : (maxPages || 1);
+}
+
+function parsePageRange(id, value) {
+  const f = uploadedFiles.find(x => x.id === id);
+  if (!f) return;
+  f.pageRange = value;
+  const count = parsePageRangeString(value, f.pages);
+  f.printedPages = count;
+  const infoEl = document.getElementById(`rangeInfo_${id}`);
+  if (infoEl) infoEl.textContent = `${count} of ${f.pages} pages`;
+  const costEl = document.getElementById(`fileCost_${id}`);
+  if (costEl) costEl.textContent = `₹${computeFileCost(f).toFixed(2)}`;
+  const metaEl = document.getElementById(`fileMeta_${id}`);
+  if (metaEl) {
+    metaEl.innerHTML = `${f.pages} pg · ${fmtBytes(f.size)}${f.rangeType === 'custom' && f.printedPages !== f.pages ? ` · <strong style="color:var(--accent);">${f.printedPages} pages selected</strong>` : ''}`;
+  }
+  updateCheckoutSummary();
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -438,12 +621,16 @@ function setPayment(method) {
 function updateCheckoutSummary() {
   let files = uploadedFiles.length, pages = 0, cost = 0;
   uploadedFiles.forEach(f => {
-    pages += f.pages * f.copies;
-    cost += f.pages * f.copies * (PRICE_RATES[f.mode] || 2) * (PAPER_MULTIPLIERS[f.paperSize] || 1);
+    const printed = f.printedPages != null ? f.printedPages : f.pages;
+    pages += printed * f.copies;
+    cost += computeFileCost(f);
   });
-  document.getElementById('grandTotalFiles').textContent = files;
-  document.getElementById('grandTotalPages').textContent = pages;
-  document.getElementById('grandTotalCost').textContent = `₹${cost.toFixed(2)}`;
+  const elFiles = document.getElementById('grandTotalFiles');
+  const elPages = document.getElementById('grandTotalPages');
+  const elCost = document.getElementById('grandTotalCost');
+  if (elFiles) elFiles.textContent = files;
+  if (elPages) elPages.textContent = pages;
+  if (elCost) elCost.textContent = `₹${cost.toFixed(2)}`;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -460,7 +647,7 @@ async function submitMainOrder() {
   }
   let total = 0;
   uploadedFiles.forEach(f => {
-    total += f.pages * f.copies * (PRICE_RATES[f.mode] || 2) * (PAPER_MULTIPLIERS[f.paperSize] || 1);
+    total += computeFileCost(f);
   });
   if (currentPaymentMethod === 'online') initRazorpayFlow(total, scheduleTimeStr);
   else executeOrderSubmission(scheduleTimeStr, 'pending');
@@ -500,7 +687,7 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
   //    The row looks exactly like a real submitted order right away.
   const pendingItems = filesToSubmit.map(f => {
     const tempId = `pending_${Math.random().toString(36).slice(2)}`;
-    const estimatedCost = f.pages * f.copies * (PRICE_RATES[f.mode] || 2) * (PAPER_MULTIPLIERS[f.paperSize] || 1);
+    const estimatedCost = computeFileCost(f);
     injectSubmittedRow(tempId, f, estimatedCost, currentPaymentMethod);
     return { tempId, file: f, estimatedCost };
   });
@@ -512,10 +699,13 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
       fd.append('file', file.fileObj);
       fd.append('print_mode', file.mode.startsWith('color') ? 'color' : 'bw');
       fd.append('copies', file.copies);
-      fd.append('paper_size', file.paperSize);
+      fd.append('paper_size', file.paperSize || 'A4');
       fd.append('payment_method', currentPaymentMethod);
       fd.append('payment_status', paymentStatus);
-      fd.append('range_type', 'full');
+      fd.append('range_type', file.rangeType || 'full');
+      if (file.rangeType === 'custom' && file.pageRange) {
+        fd.append('page_range', file.pageRange);
+      }
       if (scheduleTimeStr) fd.append('schedule_time', scheduleTimeStr);
 
       const res = await fetch(`${CONFIG.API_BASE}/orders`, {

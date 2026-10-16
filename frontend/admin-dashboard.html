@@ -311,38 +311,131 @@
 
   <!-- ── Settings / Rate Card Modal ─────────────────────────────────────────── -->
   <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content glass-card">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title section-title"><i class="bi bi-gear me-1"></i> Shop Rate Card</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content glass-card" style="border:none;overflow:hidden;">
+        <div class="modal-header border-0 pb-0" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);padding:24px 28px 20px;">
+          <div>
+            <h5 class="modal-title" style="color:#fff;font-weight:700;font-size:1.2rem;margin:0;">
+              <i class="bi bi-cash-coin me-2"></i>Shop Rate Card
+            </h5>
+            <p style="color:rgba(255,255,255,.75);font-size:.82rem;margin:6px 0 0;">
+              Set per-page rates for each paper size and print mode. Changes apply instantly to new orders.
+            </p>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body">
-          <p class="text-muted small">Update your shop's printing rates and paper size multipliers.</p>
-          <div class="mb-3">
-            <label class="form-label small text-muted">B&W Rate (per page)</label>
-            <input type="number" id="rateBw" class="minimal-input w-100" step="0.5" />
+        <div class="modal-body" style="padding:24px 28px;">
+
+          <!-- Rate cards container -->
+          <div id="rateCardsContainer" style="display:flex;flex-direction:column;gap:16px;"></div>
+
+          <!-- Add Paper Size -->
+          <div style="margin-top:18px;display:flex;gap:10px;align-items:center;">
+            <input type="text" id="newPaperSizeName" class="minimal-input" placeholder="New paper size (e.g. A5, Legal)" style="flex:1;font-size:.85rem;padding:10px 14px;" />
+            <button type="button" class="btn btn-sm" id="btnAddPaperSize" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:600;font-size:.82rem;white-space:nowrap;transition:all .2s;">
+              <i class="bi bi-plus-lg me-1"></i>Add Size
+            </button>
           </div>
-          <div class="mb-3">
-            <label class="form-label small text-muted">Color Rate (per page)</label>
-            <input type="number" id="rateColor" class="minimal-input w-100" step="0.5" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label small text-muted">A3 Multiplier (e.g. 1.25)</label>
-            <input type="number" id="rateA3" class="minimal-input w-100" step="0.05" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label small text-muted">Letter Multiplier (e.g. 1.1)</label>
-            <input type="number" id="rateLetter" class="minimal-input w-100" step="0.05" />
-          </div>
+
         </div>
-        <div class="modal-footer border-0 pt-0">
+        <div class="modal-footer border-0 pt-0" style="padding:16px 28px 24px;">
           <button type="button" class="btn-outline-glass" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary btn-sm" id="btnSaveRates">Save Rates</button>
+          <button type="button" class="btn btn-sm" id="btnSaveRates" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-weight:600;font-size:.88rem;transition:all .2s;box-shadow:0 4px 15px rgba(99,102,241,.3);">
+            <i class="bi bi-check-lg me-1"></i>Save All Rates
+          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <style>
+    /* ── Rate Card Styles ──────────────────────── */
+    .rate-paper-card {
+      background: var(--glass, rgba(255,255,255,.06));
+      border: 1px solid var(--hairline, rgba(255,255,255,.08));
+      border-radius: 14px;
+      overflow: hidden;
+      transition: all .3s ease;
+      animation: rateCardSlideIn .35s ease;
+    }
+    @keyframes rateCardSlideIn {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .rate-paper-card:hover { border-color: #8b5cf6; box-shadow: 0 4px 20px rgba(99,102,241,.12); }
+    .rate-paper-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer; user-select: none;
+    }
+    .rate-paper-header .paper-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; font-weight: 700; color: #fff;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      flex-shrink: 0;
+    }
+    .rate-paper-header .paper-label {
+      flex: 1; margin-left: 14px;
+      font-weight: 700; font-size: 1rem;
+    }
+    .rate-paper-header .paper-preview {
+      font-size: .78rem; color: var(--muted, #8b8ba3); margin-left: auto; margin-right: 12px;
+    }
+    .rate-paper-header .chevron {
+      transition: transform .3s ease; font-size: .9rem; color: var(--muted, #8b8ba3);
+    }
+    .rate-paper-card.expanded .chevron { transform: rotate(180deg); }
+    .rate-paper-body {
+      max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease;
+      padding: 0 20px;
+    }
+    .rate-paper-card.expanded .rate-paper-body {
+      max-height: 300px; padding: 0 20px 20px;
+    }
+    .rate-mode-row {
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
+    .rate-mode-box {
+      flex: 1; min-width: 180px;
+      background: var(--bg-input, #f1f3f5);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all .2s;
+    }
+    .rate-mode-box:hover { background: var(--accent-soft, rgba(99,102,241,.1)); }
+    .rate-mode-box .mode-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 8px;
+      font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 10px;
+    }
+    .rate-mode-box.bw .mode-badge { background: #e5e7eb; color: #374151; }
+    .rate-mode-box.color .mode-badge { background: linear-gradient(135deg,#f472b6,#a855f7); color: #fff; }
+    .rate-mode-box .rate-input-wrap {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rate-mode-box .rate-input-wrap .rupee-symbol {
+      font-weight: 700; font-size: 1.1rem; color: var(--text-secondary, #666);
+    }
+    .rate-mode-box .rate-input-wrap input {
+      width: 100%; font-size: 1.1rem; font-weight: 700;
+      padding: 10px 14px; border-radius: 10px;
+      border: 2px solid transparent; background: var(--bg-card, #fff);
+      color: var(--text-primary, #1a1a2e);
+      transition: border-color .2s;
+    }
+    .rate-mode-box .rate-input-wrap input:focus {
+      outline: none; border-color: #8b5cf6;
+    }
+    .rate-paper-card .remove-paper-btn {
+      background: none; border: none; color: #ef4444; font-size: .78rem;
+      cursor: pointer; padding: 4px 10px; border-radius: 8px;
+      transition: all .2s; opacity: .6;
+    }
+    .rate-paper-card .remove-paper-btn:hover { opacity: 1; background: rgba(239,68,68,.1); }
+  </style>
+
 
   <!-- ── Rejection Reason Modal ─────────────────────────────────────────── -->
   <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
@@ -724,38 +817,110 @@
       document.getElementById('statRevenue').textContent   = `₹${todayRevenue.toFixed(2)}`;
     }
 
+    // ── Rate card state ─────────────────────────────────────────────
+    let _rateCard = {};
+
     async function loadRatesToModal() {
       const { ok, data } = await apiCall('/shop/rates', 'GET');
-      if (ok && data) {
-        document.getElementById('rateBw').value = data.PRICE_RATES?.bw || 2.0;
-        document.getElementById('rateColor').value = data.PRICE_RATES?.color || 5.0;
-        document.getElementById('rateA3').value = data.PAPER_MULTIPLIERS?.A3 || 1.25;
-        document.getElementById('rateLetter').value = data.PAPER_MULTIPLIERS?.Letter || 1.1;
+      if (ok && data && data.rate_card) {
+        _rateCard = JSON.parse(JSON.stringify(data.rate_card));
+      } else {
+        _rateCard = { A4: { bw: 2.0, color: 5.0 }, A3: { bw: 10.0, color: 10.0 }, Letter: { bw: 2.5, color: 6.0 } };
+      }
+      renderRateCards();
+    }
+
+    function renderRateCards() {
+      const container = document.getElementById('rateCardsContainer');
+      container.innerHTML = '';
+      const papers = Object.keys(_rateCard);
+      papers.forEach((paper, idx) => {
+        const modes = _rateCard[paper];
+        const card = document.createElement('div');
+        card.className = 'rate-paper-card' + (idx === 0 ? ' expanded' : '');
+        card.innerHTML = `
+          <div class="rate-paper-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div class="paper-icon"><i class="bi bi-file-earmark"></i></div>
+            <div class="paper-label">${esc(paper)}</div>
+            <div class="paper-preview">B&W ₹${modes.bw} · Color ₹${modes.color}</div>
+            <i class="bi bi-chevron-down chevron"></i>
+          </div>
+          <div class="rate-paper-body">
+            <div class="rate-mode-row">
+              <div class="rate-mode-box bw">
+                <div class="mode-badge"><i class="bi bi-circle-half"></i> Black & White</div>
+                <div class="rate-input-wrap">
+                  <span class="rupee-symbol">₹</span>
+                  <input type="number" step="0.5" min="0" value="${modes.bw}" data-paper="${paper}" data-mode="bw"
+                         onchange="updateRateCardVal(this)" onfocus="this.select()" />
+                </div>
+                <div style="font-size:.72rem;color:var(--muted,#8b8ba3);margin-top:6px;">Per page rate for B&W prints</div>
+              </div>
+              <div class="rate-mode-box color">
+                <div class="mode-badge"><i class="bi bi-palette-fill"></i> Color</div>
+                <div class="rate-input-wrap">
+                  <span class="rupee-symbol">₹</span>
+                  <input type="number" step="0.5" min="0" value="${modes.color}" data-paper="${paper}" data-mode="color"
+                         onchange="updateRateCardVal(this)" onfocus="this.select()" />
+                </div>
+                <div style="font-size:.72rem;color:var(--muted,#8b8ba3);margin-top:6px;">Per page rate for Color prints</div>
+              </div>
+            </div>
+            ${papers.length > 1 ? `<div style="text-align:right;margin-top:10px;"><button class="remove-paper-btn" onclick="removePaperSize('${paper}')"><i class="bi bi-trash3 me-1"></i>Remove ${esc(paper)}</button></div>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function updateRateCardVal(input) {
+      const paper = input.dataset.paper;
+      const mode = input.dataset.mode;
+      const val = parseFloat(input.value);
+      if (!isNaN(val) && val >= 0 && _rateCard[paper]) {
+        _rateCard[paper][mode] = val;
+        // Update preview text
+        const card = input.closest('.rate-paper-card');
+        const preview = card.querySelector('.paper-preview');
+        if (preview) preview.textContent = `B&W ₹${_rateCard[paper].bw} · Color ₹${_rateCard[paper].color}`;
       }
     }
 
+    function removePaperSize(paper) {
+      if (Object.keys(_rateCard).length <= 1) { showToast('At least one paper size is required.', 'error'); return; }
+      delete _rateCard[paper];
+      renderRateCards();
+    }
+
+    // Wire up Add Paper Size button
+    document.getElementById('btnAddPaperSize').addEventListener('click', () => {
+      const input = document.getElementById('newPaperSizeName');
+      const name = input.value.trim();
+      if (!name) { showToast('Enter a paper size name.', 'error'); return; }
+      if (_rateCard[name]) { showToast(`${name} already exists.`, 'error'); return; }
+      _rateCard[name] = { bw: 2.0, color: 5.0 };
+      input.value = '';
+      renderRateCards();
+      // Expand the new card
+      const cards = document.querySelectorAll('.rate-paper-card');
+      const last = cards[cards.length - 1];
+      if (last) last.classList.add('expanded');
+    });
+
     async function saveRates() {
-      const bw = parseFloat(document.getElementById('rateBw').value);
-      const color = parseFloat(document.getElementById('rateColor').value);
-      const a3 = parseFloat(document.getElementById('rateA3').value);
-      const letter = parseFloat(document.getElementById('rateLetter').value);
-
-      const payload = {
-        PRICE_RATES: { bw, color },
-        PAPER_MULTIPLIERS: { A4: 1.0, A3: a3, Letter: letter }
-      };
-
       const btn = document.getElementById('btnSaveRates');
       btn.disabled = true;
-      btn.textContent = 'Saving...';
+      btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Saving...';
 
+      const payload = { rate_card: _rateCard };
       const { ok, data } = await apiCall('/shop/rates', 'PUT', payload);
+
       btn.disabled = false;
-      btn.textContent = 'Save Rates';
+      btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save All Rates';
 
       if (ok) {
         settingsModalInstance.hide();
-        showToast('Shop rates updated successfully.');
+        showToast('Shop rates updated successfully!');
       } else {
         showToast(data?.error || 'Failed to update rates.', 'error');
       }

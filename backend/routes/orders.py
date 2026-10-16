@@ -120,18 +120,20 @@ def _parse_page_range(raw_range: str, page_count: int) -> int:
 
 
 def _calculate_price(print_mode: str, printed_pages: int, copies: int, paper_size: str):
+    from routes.shop import _normalise_rate_card
     rates_config = ShopConfig.query.filter_by(config_key="rate_card").first()
-    if rates_config and rates_config.config_val:
-        price_rates = rates_config.config_val.get("PRICE_RATES", {"bw": 2.0, "color": 5.0})
-        paper_multipliers = rates_config.config_val.get("PAPER_MULTIPLIERS", {"A4": 1.0, "A3": 1.25, "Letter": 1.1})
-    else:
-        price_rates = {"bw": 2.0, "color": 5.0}
-        paper_multipliers = {"A4": 1.0, "A3": 1.25, "Letter": 1.1}
+    card = _normalise_rate_card(rates_config.config_val if rates_config else None)
 
-    rate = price_rates.get(print_mode, price_rates.get('bw', 2.0))
-    multiplier = paper_multipliers.get(paper_size, 1.0)
-    total = printed_pages * copies * rate * multiplier
+    # Normalise print_mode: strip _one/_both suffix for rate lookup
+    mode_key = 'color' if 'color' in print_mode else 'bw'
+
+    paper = paper_size if paper_size and paper_size in card else 'A4'
+    rates = card.get(paper, {"bw": 2.0, "color": 5.0})
+    rate = rates.get(mode_key, 2.0)
+    multiplier = 1.0  # multiplier is now baked into the per-size rate
+    total = printed_pages * copies * rate
     return rate, multiplier, round(total, 2)
+
 
 
 # ── POST /api/orders ─────────────────────────────────────────────────────────
