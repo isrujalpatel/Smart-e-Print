@@ -29,11 +29,11 @@ echo  [OK] Python found.
 echo.
 
 :: ── Install Python packages ───────────────────────────────────────────────────
-echo  Installing required packages (fastapi, uvicorn, pywin32)...
-pip install fastapi "uvicorn[standard]" pywin32 pydantic
+echo  Installing required packages (fastapi, uvicorn, pywin32, pydantic)...
+python -m pip install -r requirements.txt
 if errorlevel 1 (
-    echo  [WARNING] Some packages may have failed. Trying again...
-    pip install fastapi uvicorn pywin32
+    echo  [WARNING] Retrying install with direct package names...
+    python -m pip install fastapi "uvicorn[standard]" pywin32 pydantic
 )
 echo  [OK] Packages installed.
 echo.

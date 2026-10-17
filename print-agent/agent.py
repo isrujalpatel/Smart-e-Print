@@ -91,10 +91,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=".*",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Agent-Token"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── In-memory job tracking ─────────────────────────────────────────────────────
@@ -130,6 +130,7 @@ class PrintRequest(BaseModel):
     paper_size: str = "A4"        # "A4" | "A3" | "Letter"
     orientation: str = "portrait" # "portrait" | "landscape"
     duplex: bool = False
+    backend_url: Optional[str] = None  # Dynamic backend URL from frontend
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -185,13 +186,15 @@ def _get_windows_printers() -> list:
     return printers
 
 
-def _download_order_file(order_id: str, token: str, dest_path: str) -> None:
+def _download_order_file(order_id: str, token: str, dest_path: str, backend_url: Optional[str] = None) -> None:
     """Download the order's file from the Smart E-Print backend."""
-    url = f"{BACKEND_URL}/orders/{order_id}/download"
+    base = (backend_url or BACKEND_URL).rstrip("/")
+    url = f"{base}/orders/{order_id}/download"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     with urllib.request.urlopen(req, timeout=60) as resp:
         with open(dest_path, "wb") as f:
             f.write(resp.read())
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -474,7 +477,7 @@ def submit_print_job(
 
         # 2. Download file from backend
         try:
-            _download_order_file(req.order_id, req.order_token, tmp_path)
+            _download_order_file(req.order_id, req.order_token, tmp_path, req.backend_url)
         except Exception as exc:
             with _jobs_lock:
                 _jobs[job_id]["status"]      = "failed"

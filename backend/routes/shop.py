@@ -1,4 +1,7 @@
-from flask import Blueprint, request, jsonify
+import os
+import io
+import zipfile
+from flask import Blueprint, request, jsonify, send_file, current_app
 from extensions import db
 from middleware.auth_required import token_required, role_required
 from models.shop_config import ShopConfig
@@ -116,3 +119,57 @@ def update_rates(current_user):
     )
 
     return jsonify({"message": "Rate card updated successfully.", "rate_card": card}), 200
+
+
+@shop_bp.route('/print-agent/download', methods=['GET'])
+@role_required('admin', 'super_admin')
+def download_print_agent(current_user):
+    """
+    Package and download the latest Smart E-Print Windows Print Agent as a ZIP archive.
+    Contains agent.py, START.bat, INSTALL.bat, requirements.txt, README.md, etc.
+    """
+    candidate_paths = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "print-agent")),
+        os.path.abspath(os.path.join(current_app.root_path, "..", "print-agent")),
+        os.path.abspath(os.path.join(current_app.root_path, "print-agent")),
+    ]
+
+    agent_dir = None
+    for p in candidate_paths:
+        if os.path.isdir(p):
+            agent_dir = p
+            break
+
+    if not agent_dir:
+        return jsonify({"error": "Print agent directory not found on server."}), 404
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(agent_dir):
+            dirs[:] = [d for d in dirs if d not in ('__pycache__', '.git', 'venv', '.venv', '.idea', '.vscode')]
+            for file in files:
+                if file in ('.DS_Store', 'Thumbs.db') or file.endswith('.pyc'):
+                    continue
+                file_path = os.path.join(root, file)
+                rel_path = os.path.relpath(file_path, agent_dir)
+                zf.write(file_path, arcname=rel_path)
+
+    zip_buffer.seek(0)
+
+    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+    try:
+        AuditLog.log(
+            action="PRINT_AGENT_DOWNLOADED",
+            user=current_user,
+            details="Downloaded Windows Print Agent ZIP package",
+            ip_address=ip_addr,
+        )
+    except Exception as e:
+        print(f"[WARN] AuditLog non-fatal: {e}")
+
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='Smart-e-Print-Agent.zip',
+    )
