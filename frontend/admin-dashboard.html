@@ -695,121 +695,6 @@
     </div>
   </div>
 
-  <!-- ── Print Agent Setup / Download Modal ─────────────────────────────── -->
-  <div class="modal fade" id="agentSetupModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content glass-card" style="border:1px solid rgba(255,255,255,.12); background:rgba(18,24,38,.96); backdrop-filter:blur(24px); box-shadow:0 25px 50px -12px rgba(0,0,0,.5);">
-        <div class="modal-header border-0 pb-0">
-          <div>
-            <h5 class="modal-title section-title d-flex align-items-center gap-2 mb-1">
-              <i class="bi bi-cpu text-primary"></i> Windows Print Agent Center
-            </h5>
-            <div class="text-muted" style="font-size:0.83rem;">
-              Local background service for direct, silent hardware printing on this Windows PC
-            </div>
-          </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-
-        <div class="modal-body pt-3">
-          <!-- Live Status Bar -->
-          <div class="p-3 rounded mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2" id="agentModalStatusBar" style="background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);">
-            <div class="d-flex align-items-center gap-2">
-              <div id="agentStatusPulse" style="width:12px; height:12px; border-radius:50%; background:#94a3b8; box-shadow:0 0 8px rgba(148,163,184,.5);"></div>
-              <div>
-                <div class="fw-semibold" id="agentStatusLabel" style="font-size:0.9rem;">Checking Agent status…</div>
-                <div class="text-muted" id="agentStatusSub" style="font-size:0.78rem;">Target endpoint: http://127.0.0.1:8765</div>
-              </div>
-            </div>
-            <button class="btn btn-outline-glass btn-sm" onclick="checkAgentModalStatus(true)">
-              <i class="bi bi-arrow-clockwise me-1"></i>Check Status
-            </button>
-          </div>
-
-          <!-- Quick Action Hero -->
-          <div class="p-3 rounded mb-4" style="background:linear-gradient(135deg, rgba(99,102,241,.15), rgba(168,85,247,.12)); border:1.5px solid rgba(99,102,241,.3);">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div>
-                <div class="fw-bold fs-6 mb-1 text-white">
-                  <i class="bi bi-file-earmark-zip text-info me-1"></i> Latest Print Agent Package (.ZIP)
-                </div>
-                <div class="text-muted" style="font-size:0.82rem; max-width:480px;">
-                  Includes self-healing <code>START.bat</code>, automated package installer, SumatraPDF silent reader auto-downloader, and FastAPI daemon.
-                </div>
-              </div>
-              <button class="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 shadow" id="btnModalDownloadAgent" onclick="downloadPrintAgent()">
-                <i class="bi bi-cloud-arrow-down-fill fs-5"></i>
-                <div class="text-start">
-                  <div style="font-size:0.88rem; font-weight:600; line-height:1.1;">Download Agent ZIP</div>
-                  <div style="font-size:0.7rem; opacity:0.85;">Smart-e-Print-Agent.zip</div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <!-- 3-Step Setup Instructions -->
-          <div class="mb-3">
-            <div class="text-muted text-uppercase fw-semibold mb-2" style="font-size:0.75rem; letter-spacing:0.06em;">
-              Setup &amp; Execution Guide (Takes &lt; 1 Minute)
-            </div>
-            <div class="row g-2">
-              <div class="col-12 col-md-4">
-                <div class="p-3 rounded h-100" style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge bg-primary rounded-pill">1</span>
-                    <span class="fw-semibold" style="font-size:0.88rem;">Extract ZIP</span>
-                  </div>
-                  <p class="text-muted mb-0" style="font-size:0.8rem; line-height:1.45;">
-                    Download and extract <code>Smart-e-Print-Agent.zip</code> to any location on your Windows computer (e.g. Desktop).
-                  </p>
-                </div>
-              </div>
-              <div class="col-12 col-md-4">
-                <div class="p-3 rounded h-100" style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge bg-primary rounded-pill">2</span>
-                    <span class="fw-semibold" style="font-size:0.88rem;">Run START.bat</span>
-                  </div>
-                  <p class="text-muted mb-0" style="font-size:0.8rem; line-height:1.45;">
-                    Double-click <code>START.bat</code>. It auto-verifies Python, installs requirements, and downloads SumatraPDF portable reader automatically.
-                  </p>
-                </div>
-              </div>
-              <div class="col-12 col-md-4">
-                <div class="p-3 rounded h-100" style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge bg-success rounded-pill">3</span>
-                    <span class="fw-semibold" style="font-size:0.88rem;">Silent Hardware Printing</span>
-                  </div>
-                  <p class="text-muted mb-0" style="font-size:0.8rem; line-height:1.45;">
-                    Keep the terminal running. Orders clicked with <strong>Print via Agent</strong> will print directly and silently to your printer!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Configuration & Token details -->
-          <div class="p-3 rounded" style="background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); font-size:0.82rem;">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <div>
-                <span class="text-muted"><i class="bi bi-shield-lock me-1"></i>Security Token:</span>
-                <code class="text-warning ms-1" id="agentTokenDisplay">seprint-agent-secret-2026</code>
-              </div>
-              <div class="text-muted">
-                <i class="bi bi-info-circle me-1"></i>Bound to <code>127.0.0.1:8765</code> (local loopback only)
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer border-0 pt-0">
-          <button type="button" class="btn-outline-glass btn-sm" data-bs-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
@@ -821,7 +706,6 @@
     let detailsModalInstance = null;
     let settingsModalInstance = null;
     let printAgentModalInstance = null;
-    let agentSetupModalInstance = null;
     let _adminPollTimer = null;
     let _knownAdminOrderIds = new Set();
 
@@ -852,11 +736,6 @@
       detailsModalInstance = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
       settingsModalInstance = new bootstrap.Modal(document.getElementById('settingsModal'));
       printAgentModalInstance = new bootstrap.Modal(document.getElementById('printAgentModal'));
-      const agentSetupEl = document.getElementById('agentSetupModal');
-      if (agentSetupEl) {
-        agentSetupModalInstance = new bootstrap.Modal(agentSetupEl);
-        agentSetupEl.addEventListener('show.bs.modal', () => checkAgentModalStatus(false));
-      }
       const revenueModalEl = document.getElementById('revenueModal');
       const revenueModalInstance = new bootstrap.Modal(revenueModalEl);
 
@@ -1800,16 +1679,12 @@
         return;
       }
 
-      const btns = [
-        document.getElementById('btnHeaderDownloadAgent'),
-        document.getElementById('btnModalDownloadAgent')
-      ].filter(Boolean);
-
-      const origTexts = btns.map(b => b.innerHTML);
-      btns.forEach(b => {
-        b.disabled = true;
-        b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Preparing ZIP…';
-      });
+      const btn = document.getElementById('btnHeaderDownloadAgent');
+      const origHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Preparing ZIP…';
+      }
 
       try {
         const response = await fetch(`${CONFIG.API_BASE}/shop/print-agent/download`, {
@@ -1835,62 +1710,14 @@
 
         showToast('✅ Print Agent ZIP downloaded! Extract & run START.bat.', 'success');
 
-        // Automatically open the guide modal for quick execution steps
-        openAgentGuideModal();
-
       } catch (err) {
         console.error('Print agent download error:', err);
         showToast('Network error while downloading Print Agent.', 'error');
       } finally {
-        btns.forEach((b, idx) => {
-          b.disabled = false;
-          b.innerHTML = origTexts[idx];
-        });
-      }
-    }
-
-    /** Open the Print Agent Center modal */
-    function openAgentGuideModal() {
-      if (agentSetupModalInstance) {
-        agentSetupModalInstance.show();
-      }
-    }
-
-    /** Live check the print agent status for the modal */
-    async function checkAgentModalStatus(userTriggered = false) {
-      const pulse = document.getElementById('agentStatusPulse');
-      const label = document.getElementById('agentStatusLabel');
-      const sub   = document.getElementById('agentStatusSub');
-      if (!pulse || !label || !sub) return;
-
-      pulse.style.background = '#eab308';
-      pulse.style.boxShadow = '0 0 8px rgba(234,179,8,.5)';
-      label.textContent = 'Connecting to Print Agent…';
-      sub.textContent = 'Pinging http://127.0.0.1:8765/status';
-
-      try {
-        const res = await fetch(`${AGENT_BASE}/status`, {
-          headers: { 'X-Agent-Token': _agentToken },
-          signal: AbortSignal.timeout(3000)
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          pulse.style.background = '#22c55e';
-          pulse.style.boxShadow = '0 0 10px rgba(34,197,94,.7)';
-          label.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Print Agent Online (v${data.version || '1.0.0'})</span>`;
-          const sumatraTxt = data.sumatra_pdf?.available ? 'SumatraPDF Ready' : 'Fallback Print Engine';
-          sub.textContent = `Running on ${data.platform || 'Windows'} · ${sumatraTxt}`;
-          if (userTriggered) showToast('✅ Print Agent is online and reachable!', 'success');
-        } else {
-          throw new Error('Non-OK response');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
         }
-      } catch (err) {
-        pulse.style.background = '#ef4444';
-        pulse.style.boxShadow = '0 0 10px rgba(239,68,68,.6)';
-        label.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Print Agent Offline</span>';
-        sub.innerHTML = 'Not detected on <code>127.0.0.1:8765</code>. Double-click <code>START.bat</code> to launch it.';
-        if (userTriggered) showToast('Print Agent is offline. Please run START.bat.', 'warning');
       }
     }
   </script>
