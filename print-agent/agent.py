@@ -668,11 +668,13 @@ def _execute_print(
     if orientation == "landscape":
         settings_parts.append("landscape")
 
-    # Custom page range optimization: only rasterize requested pages
+    # Page range: SumatraPDF -print-settings accepts raw ranges like '1-7' or '2,4,6'
+    # IMPORTANT: Do NOT use 'pages=...' prefix — it is NOT valid SumatraPDF syntax
+    # and causes silent fallback to printing only page 1.
     if page_range and page_range.strip() and page_range.strip().lower() not in {"all", "custom"}:
         clean_range = "".join(c for c in page_range if c.isdigit() or c in "-,").strip()
         if clean_range:
-            settings_parts.append(f"pages={clean_range}")
+            settings_parts.append(clean_range)
 
     prep_ms = (time.perf_counter() - t_start) * 1000
     if job_id:
