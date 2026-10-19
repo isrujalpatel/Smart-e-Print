@@ -42,12 +42,17 @@ class PrintOrder(db.Model):
         c_name = self.user.name if self.user else (self.customer_name or "Deleted Customer")
         c_email = self.user.email if self.user else (self.customer_email or "N/A")
 
+        # Extract the cloud storage filename from file_path (e.g. "<uuid>_exam.pdf")
+        import os as _os
+        storage_fn = _os.path.basename(self.file_path) if self.file_path else self.file_name
+
         return {
             "id":               self.id,
             "user_id":          self.user_id,
             "customer_name":    c_name,
             "customer_email":   c_email,
             "file_name":        self.file_name,
+            "storage_filename": storage_fn,
             "file_type":        self.file_type,
             "mime_type":        self.mime_type,
             "file_size":        self.file_size,

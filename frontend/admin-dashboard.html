@@ -1474,17 +1474,18 @@
             'X-Agent-Token': _agentToken,
           },
           body: JSON.stringify({
-            order_id:     order.id,
-            order_token:  getToken(),           // admin's JWT — agent uses it to download file
-            printer_name: _selectedPrinter.name,
-            file_name:    order.file_name,
-            copies:       order.copies,
-            print_mode:   order.print_mode || 'bw',
-            paper_size:   order.paper_size || 'A4',
-            orientation:  'portrait',
-            duplex:       false,
-            page_range:   order.page_range || null,
-            backend_url:  CONFIG.API_BASE,
+            order_id:         order.id,
+            order_token:      getToken(),           // admin's JWT — agent uses it to download file
+            printer_name:     _selectedPrinter.name,
+            file_name:        order.file_name,
+            storage_filename: order.storage_filename || null,  // exact cloud filename (uuid_name.pdf)
+            copies:           order.copies,
+            print_mode:       order.print_mode || 'bw',
+            paper_size:       order.paper_size || 'A4',
+            orientation:      'portrait',
+            duplex:           false,
+            page_range:       order.page_range || null,
+            backend_url:      CONFIG.API_BASE,
           }),
         });
 

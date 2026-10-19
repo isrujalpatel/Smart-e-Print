@@ -267,6 +267,7 @@ class PrintRequest(BaseModel):
     order_token: str
     printer_name: str
     file_name: str
+    storage_filename: Optional[str] = None  # exact cloud filename (e.g. '<uuid>_exam.pdf')
     copies: int = 1
     print_mode: str = "bw"
     paper_size: str = "A4"
@@ -446,7 +447,7 @@ def _download_stream_with_progress(
     last_error = None
     for attempt in range(2):
         try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 total_bytes = int(resp.headers.get("Content-Length", 0))
                 bytes_downloaded = 0
                 with open(dest_path, "wb") as f:
@@ -485,38 +486,16 @@ SUPABASE_KEY = (
 SUPABASE_BUCKET = "order-documents"
 
 
-def _fetch_from_supabase_cloud(file_name: str, dest_path: str, progress_callback=None) -> bool:
+def _fetch_from_supabase_cloud(file_name: str, dest_path: str, progress_callback=None, storage_filename: str = None) -> bool:
     """
-    Direct cloud retrieval fallback from Supabase Storage bucket.
-    Bypasses backend server timeouts, sleep states, or 500 errors to get the GENUINE original document.
+    Direct cloud retrieval from Supabase Storage bucket.
+    Uses exact storage_filename if provided (most reliable), falls back to fuzzy match.
     """
-    try:
-        list_url = f"{SUPABASE_URL}/storage/v1/object/list/{SUPABASE_BUCKET}"
-        req = urllib.request.Request(
-            list_url,
-            data=json.dumps({"prefix": "", "limit": 100}).encode(),
-            headers={
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "apikey": SUPABASE_KEY,
-                "Content-Type": "application/json"
-            }
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            items = json.loads(resp.read().decode())
+    import urllib.parse
 
-        match_name = None
-        clean_target = file_name.strip()
-        for item in items:
-            name = item.get("name", "")
-            if name.endswith(clean_target) or clean_target in name:
-                match_name = name
-                break
-
-        if not match_name:
-            log.warning(f"[CloudDirect] File '{file_name}' not found in Supabase storage bucket list.")
-            return False
-
-        dl_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{urllib.parse.quote(match_name)}"
+    def _try_direct_download(cloud_name: str) -> bool:
+        """Attempt direct download of a specific filename from Supabase bucket."""
+        dl_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{urllib.parse.quote(cloud_name)}"
         req_dl = urllib.request.Request(
             dl_url,
             headers={
@@ -524,24 +503,65 @@ def _fetch_from_supabase_cloud(file_name: str, dest_path: str, progress_callback
                 "apikey": SUPABASE_KEY
             }
         )
-        with urllib.request.urlopen(req_dl, timeout=30) as resp:
-            total_bytes = int(resp.headers.get("Content-Length", 0))
-            bytes_downloaded = 0
-            with open(dest_path, "wb") as f:
-                while True:
-                    chunk = resp.read(131072)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    bytes_downloaded += len(chunk)
-                    if progress_callback:
-                        progress_callback(bytes_downloaded, total_bytes)
+        try:
+            with urllib.request.urlopen(req_dl, timeout=60) as resp:
+                total_bytes = int(resp.headers.get("Content-Length", 0))
+                bytes_downloaded = 0
+                with open(dest_path, "wb") as f:
+                    while True:
+                        chunk = resp.read(131072)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        bytes_downloaded += len(chunk)
+                        if progress_callback:
+                            progress_callback(bytes_downloaded, total_bytes)
+            if os.path.exists(dest_path) and os.path.getsize(dest_path) > 100:
+                log.info(f"✅ Direct Supabase download successful: {cloud_name} ({os.path.getsize(dest_path)} bytes)")
+                return True
+        except urllib.error.HTTPError as e:
+            log.warning(f"[CloudDirect] HTTP {e.code} for {cloud_name}")
+        except Exception as exc:
+            log.warning(f"[CloudDirect] Download failed for {cloud_name}: {exc}")
+        return False
 
-        if os.path.exists(dest_path) and os.path.getsize(dest_path) > 100:
-            log.info(f"✅ Direct Supabase download successful: {match_name} ({os.path.getsize(dest_path)} bytes)")
-            return True
+    try:
+        # Method 1: Try exact storage_filename directly (no listing needed — fastest)
+        if storage_filename and storage_filename.strip():
+            log.info(f"[CloudDirect] Trying exact storage filename: {storage_filename}")
+            if _try_direct_download(storage_filename.strip()):
+                return True
+
+        # Method 2: List bucket and fuzzy-match by original file_name
+        list_url = f"{SUPABASE_URL}/storage/v1/object/list/{SUPABASE_BUCKET}"
+        req = urllib.request.Request(
+            list_url,
+            data=json.dumps({"prefix": "", "limit": 200}).encode(),
+            headers={
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "apikey": SUPABASE_KEY,
+                "Content-Type": "application/json"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            items = json.loads(resp.read().decode())
+
+        clean_target = file_name.strip()
+        match_name = None
+        for item in items:
+            name = item.get("name", "")
+            if name.endswith(clean_target) or clean_target in name:
+                match_name = name
+                break
+
+        if not match_name:
+            log.warning(f"[CloudDirect] File '{file_name}' not found in Supabase bucket.")
+            return False
+
+        return _try_direct_download(match_name)
+
     except Exception as exc:
-        log.warning(f"[CloudDirect] Fallback to direct cloud download failed: {exc}")
+        log.warning(f"[CloudDirect] Cloud retrieval failed: {exc}")
     return False
 
 
@@ -1228,15 +1248,29 @@ def submit_print_job(req: PrintRequest, background_tasks: BackgroundTasks, _: bo
                     except Exception as dl_err:
                         log.warning(f"Backend download returned error ({dl_err}); attempting direct Supabase cloud retrieval...")
 
+                    # Verify backend didn't return a reconstruction slip instead of the real file
+                    if backend_ok and os.path.exists(target_path):
+                        try:
+                            with open(target_path, "rb") as _vf:
+                                _head = _vf.read(4096)
+                                if b"Archival Document Recovery" in _head or b"[Archival Document Recovery" in _head:
+                                    log.warning("Backend returned a reconstruction slip, NOT the customer's actual file. Trying Supabase direct...")
+                                    backend_ok = False
+                        except Exception:
+                            pass
+
                     # Attempt 2: Direct Supabase Cloud Storage fetch (Gets genuine original customer document)
                     if not backend_ok:
+                        with _jobs_lock:
+                            _jobs[job_id]["message"] = "Fetching original document from cloud storage…"
                         cloud_ok = _fetch_from_supabase_cloud(
                             file_name=req.file_name,
                             dest_path=target_path,
-                            progress_callback=_progress_cb
+                            progress_callback=_progress_cb,
+                            storage_filename=req.storage_filename,
                         )
                         if cloud_ok:
-                            log.info(f"✅ Successfully fetched genuine customer document directly from Supabase Cloud: {req.file_name}")
+                            log.info(f"✅ Successfully fetched genuine customer document from Supabase Cloud: {req.storage_filename or req.file_name}")
                             return
 
                     # Attempt 3: Only if original document is truly missing from cloud storage
