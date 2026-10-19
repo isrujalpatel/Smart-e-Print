@@ -15,6 +15,7 @@ from middleware.auth_required import token_required, role_required
 from models.print_order import PrintOrder
 from models.audit_log import AuditLog
 from models.shop_config import ShopConfig
+from services.storage import upload_to_cloud, download_from_cloud
 
 orders_bp = Blueprint("orders", __name__)
 
@@ -201,6 +202,12 @@ def create_order(current_user):
     uploaded_file.stream.seek(0)
     uploaded_file.save(saved_path)
 
+    # Persist file to cloud storage (Supabase Storage) so it survives Render restarts
+    try:
+        upload_to_cloud(saved_path, saved_filename, content_type)
+    except Exception as e:
+        print(f"[WARN] Cloud upload failed (non-fatal): {e}")
+
     order = PrintOrder(
         user_id=current_user.id,
         customer_name=current_user.name,
@@ -279,7 +286,18 @@ def download_order_file(current_user, order_id):
         return jsonify({"error": "Unauthorized to download this file."}), 403
 
     if not os.path.exists(order.file_path):
-        return jsonify({"error": "File not found on server."}), 404
+        # File is missing locally on Render ephemeral disk — attempt recovery from Supabase cloud storage
+        storage_filename = os.path.basename(order.file_path)
+        recovered = False
+        try:
+            recovered = download_from_cloud(storage_filename, order.file_path)
+        except Exception as e:
+            print(f"[WARN] Cloud recovery attempt failed: {e}")
+
+        if not recovered or not os.path.exists(order.file_path):
+            return jsonify({
+                "error": "File not found on server (storage expired for this legacy order). Please submit a new print order or use Print Test Page."
+            }), 404
 
     # Audit log the download for admin
     if current_user.role in {'admin', 'super_admin'}:
@@ -530,13 +548,16 @@ def download_backup_zip(current_user):
 
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for order in recent_orders:
-            if order.file_path and os.path.exists(order.file_path):
-                # Name inside ZIP: YYYY-MM-DD_CustomerName_filename
-                date_str = order.created_at.strftime('%Y-%m-%d') if order.created_at else 'unknown'
-                c_name   = (order.customer_name or 'customer').replace(' ', '_')
-                arcname  = f"{date_str}_{c_name}_{order.file_name}"
-                zf.write(order.file_path, arcname)
-                files_added += 1
+            if order.file_path:
+                if not os.path.exists(order.file_path):
+                    download_from_cloud(os.path.basename(order.file_path), order.file_path)
+                if os.path.exists(order.file_path):
+                    # Name inside ZIP: YYYY-MM-DD_CustomerName_filename
+                    date_str = order.created_at.strftime('%Y-%m-%d') if order.created_at else 'unknown'
+                    c_name   = (order.customer_name or 'customer').replace(' ', '_')
+                    arcname  = f"{date_str}_{c_name}_{order.file_name}"
+                    zf.write(order.file_path, arcname)
+                    files_added += 1
 
     zip_buffer.seek(0)
 

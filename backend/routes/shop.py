@@ -128,6 +128,31 @@ def download_print_agent(current_user):
     Package and download the latest Smart E-Print Windows Print Agent as a ZIP archive.
     Contains agent.py, START.bat, INSTALL.bat, requirements.txt, README.md, etc.
     """
+    # 1. Check for pre-built Smart-e-Print-Agent.zip directly
+    prebuilt_candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "print-agent", "Smart-e-Print-Agent.zip")),
+        os.path.abspath(os.path.join(current_app.root_path, "..", "print-agent", "Smart-e-Print-Agent.zip")),
+        os.path.abspath(os.path.join(current_app.root_path, "print-agent", "Smart-e-Print-Agent.zip")),
+    ]
+    for pb in prebuilt_candidates:
+        if os.path.isfile(pb) and os.path.getsize(pb) > 100000:
+            ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
+            try:
+                AuditLog.log(
+                    action="PRINT_AGENT_DOWNLOADED",
+                    user=current_user,
+                    details="Downloaded Windows Print Agent ZIP package (pre-built)",
+                    ip_address=ip_addr,
+                )
+            except Exception:
+                pass
+            return send_file(
+                pb,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name='Smart-e-Print-Agent.zip',
+            )
+
     candidate_paths = [
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "print-agent")),
         os.path.abspath(os.path.join(current_app.root_path, "..", "print-agent")),
@@ -148,10 +173,10 @@ def download_print_agent(current_user):
         for root, dirs, files in os.walk(agent_dir):
             dirs[:] = [d for d in dirs if d not in ('__pycache__', '.git', 'venv', '.venv', '.idea', '.vscode')]
             for file in files:
-                if file in ('.DS_Store', 'Thumbs.db') or file.endswith('.pyc'):
+                if file in ('.DS_Store', 'Thumbs.db', 'Smart-e-Print-Agent.zip') or file.endswith('.pyc'):
                     continue
                 file_path = os.path.join(root, file)
-                rel_path = os.path.relpath(file_path, agent_dir)
+                rel_path = os.path.join('Smart-e-Print-Agent', os.path.relpath(file_path, agent_dir))
                 zf.write(file_path, arcname=rel_path)
 
     zip_buffer.seek(0)

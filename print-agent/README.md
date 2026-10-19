@@ -58,9 +58,11 @@ This is set automatically when the admin opens the Settings modal and saves the 
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/status` | Liveness check — confirms agent is running |
+| `GET` | `/status` | Liveness check — confirms agent is running & SumatraPDF ready |
 | `GET` | `/printers` | Lists all Windows printers with status |
-| `POST` | `/print` | Queues a print job (returns `job_id`) |
+| `POST` | `/print` | Queues an order print job from backend (returns `job_id`) |
+| `POST` | `/print-test` | Instant 1-click printer verification test slip |
+| `POST` | `/print-direct` | Print locally uploaded base64 file directly |
 | `GET` | `/print/{job_id}` | Polls a job's current status |
 
 All endpoints require the header: `X-Agent-Token: <your-token>`

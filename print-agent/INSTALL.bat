@@ -1,97 +1,95 @@
 @echo off
-title Smart E-Print — Setup
+title Smart E-Print — Setup & Repair
 color 0A
 echo.
-echo  ============================================
-echo   Smart E-Print Print Agent — First-time Setup
-echo  ============================================
+echo  ======================================================
+echo    Smart E-Print Print Agent — Automated Setup
+echo  ======================================================
 echo.
-echo  This will install everything needed automatically.
-echo  Please wait...
+echo  Checking requirements and dependencies...
 echo.
 
-:: ── Check Python ──────────────────────────────────────────────────────────────
+:: 1. Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  [ERROR] Python is not installed!
+    echo  [ERROR] Python is not installed or not in PATH!
     echo.
-    echo  Please download and install Python from:
-    echo  https://www.python.org/downloads/
-    echo.
-    echo  IMPORTANT: Check "Add Python to PATH" during install.
+    echo  Please install Python from https://www.python.org/downloads/
+    echo  and check "Add Python to PATH".
     echo.
     pause
     start https://www.python.org/downloads/
-    exit
+    exit /b 1
 )
 
-echo  [OK] Python found.
+for /f "tokens=*" %%v in ('python --version') do echo  [OK] %%v detected.
 echo.
 
-:: ── Install Python packages ───────────────────────────────────────────────────
-echo  Installing required packages (fastapi, uvicorn, pywin32, pydantic)...
+:: 2. Upgrade pip and install requirements
+echo  Installing required Python libraries...
+python -m pip install --upgrade pip >nul 2>&1
 python -m pip install -r requirements.txt
 if errorlevel 1 (
-    echo  [WARNING] Retrying install with direct package names...
+    echo  [RETRY] Installing packages individually...
     python -m pip install fastapi "uvicorn[standard]" pywin32 pydantic
 )
-echo  [OK] Packages installed.
+echo  [OK] Python libraries installed successfully.
 echo.
 
-:: ── Auto-Download SumatraPDF (portable, no install needed) ───────────────────
-set SUMATRA_SYSTEM_64=C:\Program Files\SumatraPDF\SumatraPDF.exe
-set SUMATRA_SYSTEM_86=C:\Program Files (x86)\SumatraPDF\SumatraPDF.exe
+:: 3. Setup SumatraPDF
 set SUMATRA_LOCAL=tools\SumatraPDF.exe
-set SUMATRA_URL=https://www.sumatrapdfreader.org/dl/rel/3.5.2/SumatraPDF-3.5.2-64.exe
-
-:: Check if already installed system-wide
-if exist "%SUMATRA_SYSTEM_64%" (
-    echo  [OK] SumatraPDF found at Program Files.
-    goto sumatra_done
-)
-if exist "%SUMATRA_SYSTEM_86%" (
-    echo  [OK] SumatraPDF found at Program Files (x86).
-    goto sumatra_done
-)
-
-:: Check if already downloaded locally
 if exist "%SUMATRA_LOCAL%" (
-    echo  [OK] SumatraPDF already downloaded locally at: %SUMATRA_LOCAL%
-    goto sumatra_done
+    echo  [OK] SumatraPDF silent print engine is already installed at: %SUMATRA_LOCAL%
+    goto finish
 )
 
-:: Auto-download using PowerShell (built-in on all modern Windows)
-echo  [INFO] SumatraPDF not found. Auto-downloading portable version...
-echo         URL : %SUMATRA_URL%
-echo         Dest: %SUMATRA_LOCAL%
-echo.
-
+echo  [INFO] Setting up SumatraPDF portable...
 if not exist "tools" mkdir tools
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$ProgressPreference='SilentlyContinue'; ^
-   Write-Host '  Downloading SumatraPDF...'; ^
-   try { ^
-     Invoke-WebRequest -Uri '%SUMATRA_URL%' -OutFile '%SUMATRA_LOCAL%' -UseBasicParsing; ^
-     Write-Host '  [OK] SumatraPDF downloaded successfully.'; ^
-   } catch { ^
-     Write-Host ('  [ERROR] Download failed: ' + $_.Exception.Message); ^
-     exit 1; ^
-   }"
+   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
+   $urls = @( ^
+     'https://files.sumatrapdfreader.org/software/sumatrapdf/rel/3.5.2/SumatraPDF-3.5.2-64.exe', ^
+     'https://github.com/sumatrapdfreader/sumatrapdf/releases/download/v3.5.2/SumatraPDF-3.5.2-64.exe', ^
+     'https://www.sumatrapdfreader.org/dl/rel/3.5.2/SumatraPDF-3.5.2-64.exe' ^
+   ); ^
+   $done = $false; ^
+   foreach ($u in $urls) { ^
+     try { ^
+       Write-Host ('  Attempting download from: ' + $u); ^
+       $req = [System.Net.HttpWebRequest]::Create($u); ^
+       $req.UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'; ^
+       $resp = $req.GetResponse(); ^
+       $stream = $resp.GetResponseStream(); ^
+       $file = [System.IO.File]::Create('%SUMATRA_LOCAL%'); ^
+       $stream.CopyTo($file); ^
+       $file.Close(); ^
+       $stream.Close(); ^
+       $resp.Close(); ^
+       if ((Get-Item '%SUMATRA_LOCAL%').Length -gt 1000000) { ^
+         Write-Host '  [OK] Downloaded SumatraPDF successfully!'; ^
+         $done = $true; ^
+         break; ^
+       } ^
+     } catch { ^
+       Write-Host ('  Failed mirror: ' + $_.Exception.Message); ^
+     } ^
+   }; ^
+   if (-not $done) { exit 1; }"
 
 if exist "%SUMATRA_LOCAL%" (
-    echo  [OK] SumatraPDF saved to: %SUMATRA_LOCAL%
+    echo  [OK] SumatraPDF ready at: %SUMATRA_LOCAL%
 ) else (
-    echo  [WARNING] SumatraPDF download failed.
-    echo            PDF printing will still work via Windows default handler,
-    echo            but a print dialog may appear.
+    echo  [WARNING] Could not auto-download SumatraPDF.
+    echo  PDF printing will fall back to Windows ShellExecute.
 )
 
-:sumatra_done
+:finish
 echo.
-echo  ============================================
-echo   Setup Complete!
-echo   Now double-click start-agent.bat to run.
-echo  ============================================
+echo  ======================================================
+echo    Setup Completed Successfully!
+echo    You can now double-click start-agent.bat to run.
+echo  ======================================================
 echo.
 pause
