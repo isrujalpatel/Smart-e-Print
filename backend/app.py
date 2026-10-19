@@ -150,44 +150,36 @@ def create_app(config_class=Config):
             # 1. Super Admin Account
             super_admin = User.query.filter_by(role="super_admin").first()
             if not super_admin:
-                sa_email = "officialsrujal@gmail.com"
+                sa_email = "superadmin@smarteprint.com"
                 sa_user = User.query.filter_by(email=sa_email).first()
                 if not sa_user:
                     sa_user = User(
-                        name="Srujal Patel (Super Admin)",
+                        name="Smart e-Print Super Admin",
                         email=sa_email,
-                        password_hash=bcrypt.generate_password_hash("020807").decode("utf-8"),
+                        password_hash=bcrypt.generate_password_hash("SuperAdmin@2026").decode("utf-8"),
                         role="super_admin",
                         is_active=True,
                     )
                     db.session.add(sa_user)
                     db.session.commit()
-                    print(f"[ADMIN] Default Super Admin seeded: {sa_email} (Password: 020807)")
-                else:
-                    sa_user.role = "super_admin"
-                    sa_user.password_hash = bcrypt.generate_password_hash("020807").decode("utf-8")
-                    db.session.commit()
+                    print(f"[ADMIN] Default Super Admin seeded: {sa_email}")
 
             # 2. Admin Account (ensure single admin exists)
             admin = User.query.filter_by(role="admin").first()
             if not admin:
-                adm_email = "srujalp72@gmail.com"
+                adm_email = "headadmin@smarteprint.com"
                 adm_user = User.query.filter_by(email=adm_email).first()
                 if not adm_user:
                     adm_user = User(
-                        name="Srujal Patel (Admin)",
+                        name="Head Admin",
                         email=adm_email,
-                        password_hash=bcrypt.generate_password_hash("020807").decode("utf-8"),
+                        password_hash=bcrypt.generate_password_hash("AdminReplaced@2026").decode("utf-8"),
                         role="admin",
                         is_active=True,
                     )
                     db.session.add(adm_user)
                     db.session.commit()
-                    print(f"[ADMIN] Default Admin seeded: {adm_email} (Password: 020807)")
-                else:
-                    adm_user.role = "admin"
-                    adm_user.password_hash = bcrypt.generate_password_hash("020807").decode("utf-8")
-                    db.session.commit()
+                    print(f"[ADMIN] Default Admin seeded: {adm_email}")
             
             # 3. Default Shop Config (Rate Card)
             rates_config = ShopConfig.query.filter_by(config_key="rate_card").first()
