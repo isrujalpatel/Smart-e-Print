@@ -214,8 +214,20 @@ class PrintFileCache:
             files = [f for f in self.cache_dir.glob("order_*") if f.is_file()]
             total_size = sum(f.stat().st_size for f in files)
 
+            # Purge any stale emergency slips
+            for f in files:
+                try:
+                    if f.stat().st_size < 15000:
+                        with open(f, "rb") as sf:
+                            if b"Archival Document Recovery" in sf.read(4096):
+                                f.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
             # Purge expired
             for f in files:
+                if not f.exists():
+                    continue
                 if (now - f.stat().st_mtime) > self.max_age_seconds:
                     total_size -= f.stat().st_size
                     f.unlink(missing_ok=True)
@@ -462,6 +474,75 @@ def _download_stream_with_progress(
             time.sleep(1.0 * (attempt + 1))
 
     raise RuntimeError(f"Download failed after retries: {last_error}")
+
+
+SUPABASE_URL = "https://rlboymsssxbqksevgxij.supabase.co"
+SUPABASE_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsYm95bXNzc3hicWtzZXZneGlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjYwNTUwNSwiZXhwIjoyMTAyMTgxNTA1fQ."
+    "9JpKwJP_Zkj31006VDhyS_EsYwDKHrratAjtJEFqPzw"
+)
+SUPABASE_BUCKET = "order-documents"
+
+
+def _fetch_from_supabase_cloud(file_name: str, dest_path: str, progress_callback=None) -> bool:
+    """
+    Direct cloud retrieval fallback from Supabase Storage bucket.
+    Bypasses backend server timeouts, sleep states, or 500 errors to get the GENUINE original document.
+    """
+    try:
+        list_url = f"{SUPABASE_URL}/storage/v1/object/list/{SUPABASE_BUCKET}"
+        req = urllib.request.Request(
+            list_url,
+            data=json.dumps({"prefix": "", "limit": 100}).encode(),
+            headers={
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "apikey": SUPABASE_KEY,
+                "Content-Type": "application/json"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            items = json.loads(resp.read().decode())
+
+        match_name = None
+        clean_target = file_name.strip()
+        for item in items:
+            name = item.get("name", "")
+            if name.endswith(clean_target) or clean_target in name:
+                match_name = name
+                break
+
+        if not match_name:
+            log.warning(f"[CloudDirect] File '{file_name}' not found in Supabase storage bucket list.")
+            return False
+
+        dl_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{urllib.parse.quote(match_name)}"
+        req_dl = urllib.request.Request(
+            dl_url,
+            headers={
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "apikey": SUPABASE_KEY
+            }
+        )
+        with urllib.request.urlopen(req_dl, timeout=30) as resp:
+            total_bytes = int(resp.headers.get("Content-Length", 0))
+            bytes_downloaded = 0
+            with open(dest_path, "wb") as f:
+                while True:
+                    chunk = resp.read(131072)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    bytes_downloaded += len(chunk)
+                    if progress_callback:
+                        progress_callback(bytes_downloaded, total_bytes)
+
+        if os.path.exists(dest_path) and os.path.getsize(dest_path) > 100:
+            log.info(f"✅ Direct Supabase download successful: {match_name} ({os.path.getsize(dest_path)} bytes)")
+            return True
+    except Exception as exc:
+        log.warning(f"[CloudDirect] Fallback to direct cloud download failed: {exc}")
+    return False
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1132,6 +1213,7 @@ def submit_print_job(req: PrintRequest, background_tasks: BackgroundTasks, _: bo
                             _jobs[job_id]["message"] = f"Downloading: {mb_read:.1f} MB / {mb_total:.1f} MB ({int(bytes_read*100/total_bytes)}%)"
 
                 def _do_download(target_path: str):
+                    backend_ok = False
                     try:
                         _download_stream_with_progress(
                             order_id=req.order_id,
@@ -1140,8 +1222,24 @@ def submit_print_job(req: PrintRequest, background_tasks: BackgroundTasks, _: bo
                             backend_url=req.backend_url,
                             progress_callback=_progress_cb,
                         )
+                        backend_ok = os.path.exists(target_path) and os.path.getsize(target_path) > 100
                     except Exception as dl_err:
-                        log.warning(f"Server download returned error ({dl_err}); automatically reconstructing archival document for printer...")
+                        log.warning(f"Backend download returned error ({dl_err}); attempting direct Supabase cloud retrieval...")
+
+                    # Attempt 2: Direct Supabase Cloud Storage fetch (Gets genuine original customer document)
+                    if not backend_ok:
+                        cloud_ok = _fetch_from_supabase_cloud(
+                            file_name=req.file_name,
+                            dest_path=target_path,
+                            progress_callback=_progress_cb
+                        )
+                        if cloud_ok:
+                            log.info(f"✅ Successfully fetched genuine customer document directly from Supabase Cloud: {req.file_name}")
+                            return
+
+                    # Attempt 3: Only if original document is truly missing from cloud storage
+                    if not os.path.exists(target_path) or os.path.getsize(target_path) == 0:
+                        log.warning("Original document not found on backend or cloud storage; generating emergency printable slip...")
                         pages = 1
                         if req.page_range and '-' in str(req.page_range):
                             try:
