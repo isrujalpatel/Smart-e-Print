@@ -1079,6 +1079,25 @@ def submit_print_job(req: PrintRequest, background_tasks: BackgroundTasks, _: bo
             # Step 1: Check Local Cache (Instant 0ms Reuse)
             cached_path = _file_cache.get(req.order_id, req.file_name)
             if cached_path:
+                # If cached file was a temporary recovery slip, discard it to fetch genuine customer file
+                is_recovery_slip = False
+                try:
+                    if os.path.getsize(cached_path) < 15000:
+                        with open(cached_path, "rb") as cf:
+                            if b"Archival Document Recovery" in cf.read(4096):
+                                is_recovery_slip = True
+                except Exception:
+                    pass
+
+                if is_recovery_slip:
+                    log.info(f"Discarding cached recovery slip for {req.order_id}; fetching genuine customer document from cloud...")
+                    try:
+                        os.remove(cached_path)
+                    except Exception:
+                        pass
+                    cached_path = None
+
+            if cached_path:
                 local_file_path = cached_path
                 file_size = os.path.getsize(cached_path)
                 with _jobs_lock:

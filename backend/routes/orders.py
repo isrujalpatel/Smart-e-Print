@@ -367,30 +367,46 @@ def download_order_file(current_user, order_id):
 
     storage_filename = os.path.basename(order.file_path) if order.file_path else f"{order.id}_{order.file_name}"
     upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join(current_app.root_path, 'instance', 'uploads'))
-    if not order.file_path:
-        order.file_path = os.path.join(upload_folder, storage_filename)
+    os.makedirs(upload_folder, exist_ok=True)
+    local_file_path = os.path.join(upload_folder, storage_filename)
 
-    if not os.path.exists(order.file_path):
-        # 1. Attempt recovery from Supabase cloud storage
+    # If the file does not exist locally or is empty, recover it from cloud storage
+    if not os.path.exists(local_file_path) or os.path.getsize(local_file_path) == 0:
         recovered = False
+        # 1. Attempt recovery from Supabase cloud storage
         try:
-            recovered = download_from_cloud(storage_filename, order.file_path)
+            recovered = download_from_cloud(storage_filename, local_file_path)
         except Exception as e:
             print(f"[WARN] Cloud recovery attempt failed: {e}")
 
-        # 2. If missing on disk & cloud, automatically reconstruct printable document
-        if not recovered or not os.path.exists(order.file_path):
+        # 2. Check if old order.file_path exists and is readable
+        if not recovered and order.file_path and os.path.exists(order.file_path) and os.path.getsize(order.file_path) > 0:
             try:
-                os.makedirs(os.path.dirname(order.file_path), exist_ok=True)
+                import shutil
+                shutil.copy2(order.file_path, local_file_path)
+                recovered = True
+            except Exception:
+                pass
+
+        # 3. If missing everywhere, automatically reconstruct printable document
+        if not recovered or not os.path.exists(local_file_path) or os.path.getsize(local_file_path) == 0:
+            try:
                 pdf_data = _reconstruct_order_pdf(order)
-                with open(order.file_path, "wb") as f:
+                with open(local_file_path, "wb") as f:
                     f.write(pdf_data)
                 # Persist to cloud storage so future downloads are instant
-                upload_to_cloud(order.file_path, storage_filename, "application/pdf")
-                db.session.commit()
+                upload_to_cloud(local_file_path, storage_filename, "application/pdf")
             except Exception as e:
                 print(f"[WARN] Order reconstruction fallback failed: {e}")
                 return jsonify({"error": "File not found on server and could not be reconstructed."}), 404
+
+    # Update order.file_path to the active working path
+    if order.file_path != local_file_path:
+        order.file_path = local_file_path
+        try:
+            db.session.commit()
+        except Exception:
+            pass
 
     # Audit log the download for admin
     if current_user.role in {'admin', 'super_admin'}:
@@ -403,10 +419,10 @@ def download_order_file(current_user, order_id):
         )
 
     return send_file(
-        order.file_path, 
+        local_file_path, 
         as_attachment=True, 
         download_name=order.file_name,
-        mimetype=order.mime_type
+        mimetype=order.mime_type or "application/pdf"
     )
 
 # ── POST /api/orders/<order_id>/cancel ────────────────────────────────────────
