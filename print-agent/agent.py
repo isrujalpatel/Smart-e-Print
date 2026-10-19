@@ -669,8 +669,11 @@ def _execute_print(
             _jobs[job_id]["message"] = f"Preparing print settings for {printer_name}…"
 
     # 1. Build optimized SumatraPDF settings
+    # CRITICAL: SumatraPDF copies format is 'Nx' (e.g. '2x'), NOT a bare number.
+    # A bare '1' is interpreted as "print page 1 only", NOT "1 copy"!
+    num_copies = max(1, copies)
     settings_parts = [
-        str(max(1, copies)),
+        f"{num_copies}x",
         f"paper={(paper_size or 'A4').lower()}",
     ]
     # Monochrome optimization: avoids generating 100+ MB 24-bit RGB raster in Windows Spooler
