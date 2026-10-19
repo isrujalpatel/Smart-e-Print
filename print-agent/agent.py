@@ -669,13 +669,15 @@ def _execute_print(
             _jobs[job_id]["message"] = f"Preparing print settings for {printer_name}…"
 
     # 1. Build optimized SumatraPDF settings
-    # CRITICAL: SumatraPDF copies format is 'Nx' (e.g. '2x'), NOT a bare number.
-    # A bare '1' is interpreted as "print page 1 only", NOT "1 copy"!
+    # IMPORTANT: Only add 'Nx' copies when copies > 1. Default is 1 copy.
+    # Adding '1x' causes SumatraPDF to misinterpret it as "page 1", printing page 1 twice.
     num_copies = max(1, copies)
     settings_parts = [
-        f"{num_copies}x",
         f"paper={(paper_size or 'A4').lower()}",
     ]
+    if num_copies > 1:
+        settings_parts.insert(0, f"{num_copies}x")
+
     # Monochrome optimization: avoids generating 100+ MB 24-bit RGB raster in Windows Spooler
     p_lower = printer_name.lower()
     is_mono_printer = any(m in p_lower for m in ["2201", "taskalfa", "laserjet", "mono", "black", "1020", "m1005", "mfp", "l2520", "l2540"])
@@ -691,13 +693,22 @@ def _execute_print(
     if orientation == "landscape":
         settings_parts.append("landscape")
 
-    # Page range: SumatraPDF -print-settings accepts raw ranges like '1-7' or '2,4,6'
-    # IMPORTANT: Do NOT use 'pages=...' prefix — it is NOT valid SumatraPDF syntax
-    # and causes silent fallback to printing only page 1.
+    # Page range: only add for CUSTOM partial ranges, not "all" or full-document ranges like "1-7".
+    # SumatraPDF prints ALL pages by default — adding a redundant full range can cause issues.
     if page_range and page_range.strip() and page_range.strip().lower() not in {"all", "custom"}:
         clean_range = "".join(c for c in page_range if c.isdigit() or c in "-,").strip()
         if clean_range:
-            settings_parts.append(clean_range)
+            # Check if this is a full-document range like "1-7" — skip it, let SumatraPDF print all
+            is_full_range = False
+            if "-" in clean_range and "," not in clean_range:
+                try:
+                    start_p, end_p = clean_range.split("-", 1)
+                    if start_p.strip() == "1":
+                        is_full_range = True  # starts at page 1 = likely full doc
+                except Exception:
+                    pass
+            if not is_full_range:
+                settings_parts.append(clean_range)
 
     prep_ms = (time.perf_counter() - t_start) * 1000
     if job_id:
