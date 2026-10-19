@@ -1454,6 +1454,7 @@
             paper_size:   order.paper_size || 'A4',
             orientation:  'portrait',
             duplex:       false,
+            page_range:   order.page_range || null,
             backend_url:  CONFIG.API_BASE,
           }),
         });
@@ -1463,7 +1464,11 @@
           throw new Error(err.detail || 'Agent rejected the print request.');
         }
 
-        const { job_id } = await res.json();
+        const data = await res.json();
+        const { job_id, is_duplicate } = data;
+        if (is_duplicate) {
+          showToast('Print job already in progress! Tracking existing job…', 'info');
+        }
 
         // ── Update order status to Printing on the backend (optimistic) ──
         updateStatus(_printOrderId, 'Printing');
@@ -1588,11 +1593,15 @@
           if (!res.ok) return;
           const job = await res.json();
 
-          // Advance progress bar
-          if (job.status === 'downloading') progress = Math.min(progress + 15, 65);
-          if (job.status === 'printing')    progress = Math.min(progress + 20, 90);
-          if (job.status === 'completed')   progress = 100;
-          document.getElementById('jobProgressBar').style.width = progress + '%';
+          // Advance progress bar based on live agent metrics
+          if (typeof job.progress === 'number') {
+            document.getElementById('jobProgressBar').style.width = job.progress + '%';
+          } else {
+            if (job.status === 'downloading') progress = Math.min(progress + 15, 65);
+            if (job.status === 'spooling' || job.status === 'printing') progress = Math.min(progress + 15, 90);
+            if (job.status === 'completed') progress = 100;
+            document.getElementById('jobProgressBar').style.width = progress + '%';
+          }
 
           _updateJobUI(job);
 
@@ -1627,13 +1636,22 @@
     /** Update Step 3 UI based on current job status. */
     function _updateJobUI(job) {
       const icons = {
-        queued:      '⏳', downloading: '📥',
-        printing:    '🖨️', completed:   '✅', failed: '❌',
+        queued:      '⏳',
+        downloading: '📥',
+        validating:  '🔍',
+        preparing:   '⚙️',
+        spooling:    '📄',
+        printing:    '🖨️',
+        completed:   '✅',
+        failed:      '❌',
       };
       const titles = {
-        queued:      'Job queued…',
-        downloading: 'Downloading document…',
-        printing:    'Printing…',
+        queued:      'Job Queued in Spooler',
+        downloading: 'Downloading Document…',
+        validating:  'Validating Document Structure…',
+        preparing:   'Configuring Print Settings…',
+        spooling:    'Spooling to Printer Queue…',
+        printing:    'Printing Document…',
         completed:   'Print Job Sent Successfully!',
         failed:      'Print Failed',
       };

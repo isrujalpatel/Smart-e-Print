@@ -79,7 +79,11 @@ def download_from_cloud(storage_filename: str, local_dest_path: str) -> bool:
             if resp.status == 200:
                 os.makedirs(os.path.dirname(local_dest_path), exist_ok=True)
                 with open(local_dest_path, "wb") as f:
-                    f.write(resp.read())
+                    while True:
+                        chunk = resp.read(65536)
+                        if not chunk:
+                            break
+                        f.write(chunk)
                 log.info(f"Downloaded {storage_filename} from cloud storage to {local_dest_path}")
                 return True
     except urllib.error.HTTPError as err:
