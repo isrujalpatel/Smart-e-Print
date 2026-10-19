@@ -434,12 +434,12 @@ def _download_stream_with_progress(
     last_error = None
     for attempt in range(2):
         try:
-            with urllib.request.urlopen(req, timeout=35) as resp:
+            with urllib.request.urlopen(req, timeout=20) as resp:
                 total_bytes = int(resp.headers.get("Content-Length", 0))
                 bytes_downloaded = 0
                 with open(dest_path, "wb") as f:
                     while True:
-                        chunk = resp.read(65536)
+                        chunk = resp.read(131072)
                         if not chunk:
                             break
                         f.write(chunk)
@@ -573,7 +573,10 @@ def _execute_print(
         f"paper={(paper_size or 'A4').lower()}",
     ]
     # Monochrome optimization: avoids generating 100+ MB 24-bit RGB raster in Windows Spooler
-    if print_mode == "bw":
+    p_lower = printer_name.lower()
+    is_mono_printer = any(m in p_lower for m in ["2201", "taskalfa", "laserjet", "mono", "black", "1020", "m1005", "mfp", "l2520", "l2540"])
+
+    if print_mode == "bw" or is_mono_printer:
         settings_parts.append("monochrome")
     elif print_mode == "color":
         settings_parts.append("color")

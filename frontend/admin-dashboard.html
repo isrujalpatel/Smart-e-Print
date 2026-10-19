@@ -842,6 +842,8 @@
     // ── Rate card state ─────────────────────────────────────────────
     let _rateCard = {};
 
+    const esc = (s) => (s !== undefined && s !== null ? escapeHtml(String(s)) : '');
+
     async function loadRatesToModal() {
       const { ok, data } = await apiCall('/shop/rates', 'GET');
       if (ok && data && data.rate_card) {
@@ -863,7 +865,7 @@
         card.innerHTML = `
           <div class="rate-paper-header" onclick="this.parentElement.classList.toggle('expanded')">
             <div class="paper-icon"><i class="bi bi-file-earmark"></i></div>
-            <div class="paper-label">${esc(paper)}</div>
+            <div class="paper-label">${escapeHtml(paper)}</div>
             <div class="paper-preview">B&W ₹${modes.bw} · Color ₹${modes.color}</div>
             <i class="bi bi-chevron-down chevron"></i>
           </div>
@@ -888,7 +890,7 @@
                 <div style="font-size:.72rem;color:var(--muted,#8b8ba3);margin-top:6px;">Per page rate for Color prints</div>
               </div>
             </div>
-            ${papers.length > 1 ? `<div style="text-align:right;margin-top:10px;"><button class="remove-paper-btn" onclick="removePaperSize('${paper}')"><i class="bi bi-trash3 me-1"></i>Remove ${esc(paper)}</button></div>` : ''}
+            ${papers.length > 1 ? `<div style="text-align:right;margin-top:10px;"><button class="remove-paper-btn" onclick="removePaperSize('${paper}')"><i class="bi bi-trash3 me-1"></i>Remove ${escapeHtml(paper)}</button></div>` : ''}
           </div>
         `;
         container.appendChild(card);
@@ -1251,6 +1253,7 @@
      * Called when admin clicks the [Print] button on an Accepted order.
      */
     async function openPrintAgentModal(orderId) {
+      if (_step2Timer) { clearTimeout(_step2Timer); _step2Timer = null; }
       _printOrderId = orderId;
       _selectedPrinter = null;
 
@@ -1258,6 +1261,11 @@
       showPrintStep('printStep1');
       document.getElementById('agentOfflineBanner').classList.add('d-none');
       document.getElementById('btnSelectPrinter').disabled = true;
+      const btn = document.getElementById('btnPrintNow');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Print Now';
+      }
       document.getElementById('printerListContainer').innerHTML =
         '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted">Connecting to Print Agent…</span></div>';
 
@@ -1343,6 +1351,8 @@
       }).join('');
     }
 
+    let _step2Timer = null;
+
     /**
      * Called when admin clicks a printer card.
      * Reads printer data from _printerList by index — safe, no JSON-in-HTML.
@@ -1368,7 +1378,13 @@
       document.getElementById('btnSelectPrinter').disabled = false;
 
       // Auto-advance to config summary (Step 2) on click — no extra button needed
-      setTimeout(() => gotoStep2(), 150);  // small delay so selection highlight is visible
+      if (_step2Timer) clearTimeout(_step2Timer);
+      _step2Timer = setTimeout(() => {
+        const s1 = document.getElementById('printStep1');
+        if (s1 && s1.classList.contains('active')) {
+          gotoStep2();
+        }
+      }, 150);
     }
 
     /** Show only the specified step div. */
@@ -1396,10 +1412,21 @@
      * No re-configuration needed.
      */
     function gotoStep2() {
+      if (_step2Timer) { clearTimeout(_step2Timer); _step2Timer = null; }
+      const s3 = document.getElementById('printStep3');
+      if (s3 && s3.classList.contains('active')) return;
+
       if (!_selectedPrinter || !_printOrderId) return;
 
       const order = cachedOrders.find(o => o.id === _printOrderId);
       if (!order) { showToast('Order data not found.', 'error'); return; }
+
+      // Reset print button state
+      const btn = document.getElementById('btnPrintNow');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Print Now';
+      }
 
       // Populate summary
       document.getElementById('summaryPrinterName').textContent = _selectedPrinter.name;
@@ -1425,6 +1452,7 @@
      * and send it directly to the selected Windows printer — no browser dialog.
      */
     async function submitPrintJob() {
+      if (_step2Timer) { clearTimeout(_step2Timer); _step2Timer = null; }
       if (!_selectedPrinter || !_printOrderId) return;
 
       const order = cachedOrders.find(o => o.id === _printOrderId);
@@ -1436,6 +1464,7 @@
 
       showPrintStep('printStep3');
       _updateJobUI({ status: 'queued', message: 'Sending print job to agent…' });
+      document.getElementById('jobProgressBar').style.width = '20%';
 
       try {
         const res = await fetch(`${AGENT_BASE}/print`, {
