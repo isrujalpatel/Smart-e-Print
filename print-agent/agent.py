@@ -669,14 +669,19 @@ def _execute_print(
             _jobs[job_id]["message"] = f"Preparing print settings for {printer_name}…"
 
     # 1. Build optimized SumatraPDF settings
-    # IMPORTANT: Only add 'Nx' copies when copies > 1. Default is 1 copy.
-    # Adding '1x' causes SumatraPDF to misinterpret it as "page 1", printing page 1 twice.
+    # CRITICAL:
+    # - Default copy count is 1. NEVER pass '1x' or bare '1'. Bare digits are parsed as PAGE NUMBERS.
+    # - When copies > 1, use 'Nx,collate' (e.g. '2x,collate').
+    # - When duplex is True, use 'duplexlong'. When False, explicitly pass 'simplex'.
+    # - Use 'ignore-pdf-print-settings' to prevent embedded PDF ViewerPreferences from altering settings.
     num_copies = max(1, copies)
     settings_parts = [
         f"paper={(paper_size or 'A4').lower()}",
+        "ignore-pdf-print-settings",
     ]
     if num_copies > 1:
-        settings_parts.insert(0, f"{num_copies}x")
+        settings_parts.append(f"{num_copies}x")
+        settings_parts.append("collate")
 
     # Monochrome optimization: avoids generating 100+ MB 24-bit RGB raster in Windows Spooler
     p_lower = printer_name.lower()
@@ -689,24 +694,30 @@ def _execute_print(
 
     if duplex:
         settings_parts.append("duplexlong")
+    else:
+        settings_parts.append("simplex")
 
     if orientation == "landscape":
         settings_parts.append("landscape")
 
-    # Page range: only add for CUSTOM partial ranges, not "all" or full-document ranges like "1-7".
-    # SumatraPDF prints ALL pages by default — adding a redundant full range can cause issues.
-    if page_range and page_range.strip() and page_range.strip().lower() not in {"all", "custom"}:
+    # Page range: only add for CUSTOM partial ranges, not "all", "full", or full-document ranges like "1-7".
+    # SumatraPDF prints ALL pages by default — adding a redundant full range causes driver/parser bugs.
+    if page_range and page_range.strip() and page_range.strip().lower() not in {"all", "custom", "full", "none"}:
         clean_range = "".join(c for c in page_range if c.isdigit() or c in "-,").strip()
         if clean_range:
-            # Check if this is a full-document range like "1-7" — skip it, let SumatraPDF print all
+            # Check if this range covers the entire document
             is_full_range = False
-            if "-" in clean_range and "," not in clean_range:
+            total_doc_pages = None
+            if ext == ".pdf":
                 try:
-                    start_p, end_p = clean_range.split("-", 1)
-                    if start_p.strip() == "1":
-                        is_full_range = True  # starts at page 1 = likely full doc
+                    total_doc_pages = _validate_and_inspect_pdf(file_path).get("page_count")
                 except Exception:
                     pass
+            if total_doc_pages and total_doc_pages > 1 and clean_range == f"1-{total_doc_pages}":
+                is_full_range = True
+            elif total_doc_pages == 1 and clean_range == "1":
+                is_full_range = True
+
             if not is_full_range:
                 settings_parts.append(clean_range)
 

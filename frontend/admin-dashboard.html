@@ -1057,7 +1057,7 @@
             </td>
             <td>
               ${modeBadge}
-              <small class="text-muted d-block" style="font-size:.73rem;">${o.paper_size || 'A4'} · ${escapeHtml(o.page_range)}</small>
+              <small class="text-muted d-block" style="font-size:.73rem;">${o.paper_size || 'A4'} · ${o.duplex ? '<span class="text-primary fw-semibold">2-Sided</span>' : '1-Sided'}${o.page_range && o.page_range !== 'all' ? ` · ${escapeHtml(o.page_range)}` : ''}</small>
             </td>
             <td>
               <span class="fw-bold text-success" style="font-size:.87rem;">₹${o.total_price.toFixed(2)}</span>
@@ -1202,17 +1202,21 @@
             <label class="text-muted small">File Size</label>
             <div>${(order.file_size / (1024*1024)).toFixed(2)} MB</div>
           </div>
-          <div class="col-4">
+          <div class="col-3">
             <label class="text-muted small">Mode</label>
             <div>${order.print_mode.toUpperCase()}</div>
           </div>
-          <div class="col-4">
+          <div class="col-3">
             <label class="text-muted small">Copies</label>
             <div>${order.copies}</div>
           </div>
-          <div class="col-4">
+          <div class="col-3">
             <label class="text-muted small">Paper Size</label>
             <div>${order.paper_size || 'A4'}</div>
+          </div>
+          <div class="col-3">
+            <label class="text-muted small">Sides</label>
+            <div><strong style="color:var(--accent);">${order.duplex ? '2-Sided (Duplex)' : '1-Sided'}</strong></div>
           </div>
           <div class="col-6">
             <label class="text-muted small">Page Range</label>
@@ -1434,13 +1438,16 @@
 
       // Build config pills from existing order data (no re-entry needed)
       const mode   = order.print_mode === 'color' ? 'Color' : 'Black & White';
-      const duplex = 'Duplex OFF';   // stored in order; default OFF unless order has duplex field
+      const isDuplex = !!order.duplex;
+      const duplexLabel = isDuplex ? 'Duplex (Both Sides)' : 'Single Sided';
+      const duplexIcon = isDuplex ? 'bi-journal-check' : 'bi-journal-minus';
       document.getElementById('configPillsContainer').innerHTML = `
         <span class="config-pill"><i class="bi bi-file-earmark"></i> ${escapeHtml(order.paper_size || 'A4')}</span>
         <span class="config-pill"><i class="bi bi-palette"></i> ${mode}</span>
         <span class="config-pill"><i class="bi bi-files"></i> ${order.copies} ${order.copies > 1 ? 'Copies' : 'Copy'}</span>
         <span class="config-pill"><i class="bi bi-phone-landscape"></i> Portrait</span>
-        <span class="config-pill"><i class="bi bi-journal-minus"></i> ${duplex}</span>
+        <span class="config-pill ${isDuplex ? 'text-primary fw-semibold' : ''}"><i class="bi ${duplexIcon}"></i> ${duplexLabel}</span>
+        ${order.page_range && order.page_range !== 'all' ? `<span class="config-pill"><i class="bi bi-journal-bookmark"></i> Pages: ${escapeHtml(order.page_range)}</span>` : ''}
       `;
 
       showPrintStep('printStep2');
@@ -1479,11 +1486,11 @@
             printer_name:     _selectedPrinter.name,
             file_name:        order.file_name,
             storage_filename: order.storage_filename || null,  // exact cloud filename (uuid_name.pdf)
-            copies:           order.copies,
+            copies:           order.copies || 1,
             print_mode:       order.print_mode || 'bw',
             paper_size:       order.paper_size || 'A4',
             orientation:      'portrait',
-            duplex:           false,
+            duplex:           !!order.duplex,
             page_range:       order.page_range || null,
             backend_url:      CONFIG.API_BASE,
           }),
@@ -1583,7 +1590,7 @@
               print_mode: order.print_mode || 'bw',
               paper_size: order.paper_size || 'A4',
               orientation: 'portrait',
-              duplex: false,
+              duplex: !!order.duplex,
             }),
           });
 

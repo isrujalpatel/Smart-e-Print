@@ -126,6 +126,7 @@ def create_app(config_class=Config):
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) DEFAULT 'cash'"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'pending'"))
+                db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS duplex BOOLEAN DEFAULT FALSE"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS rejection_reason TEXT"))
                 db.session.execute(db.text("ALTER TABLE print_orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()"))
                 db.session.execute(db.text("ALTER TABLE print_orders ALTER COLUMN user_id DROP NOT NULL"))

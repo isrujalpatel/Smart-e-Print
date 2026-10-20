@@ -23,6 +23,7 @@ class PrintOrder(db.Model):
     copies           = db.Column(db.Integer, nullable=False, default=1)
     page_range       = db.Column(db.String(100), nullable=False)
     paper_size       = db.Column(db.String(20), nullable=True)
+    duplex           = db.Column(db.Boolean, nullable=False, default=False)
     printed_pages    = db.Column(db.Integer, nullable=False)
     unit_rate        = db.Column(db.Float, nullable=False)
     multiplier       = db.Column(db.Float, nullable=False)
@@ -61,6 +62,7 @@ class PrintOrder(db.Model):
             "copies":           self.copies,
             "page_range":       self.page_range,
             "paper_size":       self.paper_size,
+            "duplex":           bool(self.duplex),
             "printed_pages":    self.printed_pages,
             "unit_rate":        self.unit_rate,
             "multiplier":       self.multiplier,

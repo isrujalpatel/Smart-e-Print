@@ -698,6 +698,8 @@ async function executeOrderSubmission(scheduleTimeStr, paymentStatus) {
       const fd = new FormData();
       fd.append('file', file.fileObj);
       fd.append('print_mode', file.mode.startsWith('color') ? 'color' : 'bw');
+      fd.append('duplex', file.mode.endsWith('both') ? 'true' : 'false');
+      fd.append('sides', file.mode.endsWith('both') ? 'both' : 'one');
       fd.append('copies', file.copies);
       fd.append('paper_size', file.paperSize || 'A4');
       fd.append('payment_method', currentPaymentMethod);
@@ -737,6 +739,8 @@ function injectSubmittedRow(tempId, file, estimatedCost, paymentMethod) {
   if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
 
   const payLabel = `<span style="color:#eab308;font-weight:600;">Pending</span>`;
+  const sidesLabel = file.mode && file.mode.endsWith('both') ? 'Both sides' : '1-sided';
+  const rangeLabel = file.rangeType === 'custom' && file.pageRange ? ` · (${esc(file.pageRange)})` : '';
   const tr = document.createElement('tr');
   tr.id = tempId;
   tr.dataset.pending = '1';
@@ -745,7 +749,7 @@ function injectSubmittedRow(tempId, file, estimatedCost, paymentMethod) {
   tr.innerHTML = `
     <td>
       <strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(file.name)}</strong>
-      <small style="color:var(--text-muted);">${file.copies} × ${file.mode.startsWith('color') ? 'color' : 'bw'} · ${file.paperSize}</small>
+      <small style="color:var(--text-muted);">${file.copies} × ${file.mode.startsWith('color') ? 'Color' : 'B&W'} · ${file.paperSize || 'A4'} · ${sidesLabel}${rangeLabel}</small>
     </td>
     <td><strong style="color:var(--success);">₹${estimatedCost.toFixed(2)}</strong></td>
     <td>${payLabel}</td>
@@ -767,13 +771,15 @@ function finaliseRow(tempId, order) {
   const action = canCancel
     ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${order.id}')">${t('cancel')}</button>`
     : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
+  const sidesLabel = order.duplex ? 'Both sides' : '1-sided';
+  const rangeLabel = order.page_range && order.page_range !== 'all' ? ` · (${esc(order.page_range)})` : '';
   tr.id = '';
   tr.dataset.orderId = order.id;
   tr.dataset.pending = '';
   tr.style.background = '';
   tr.innerHTML = `
     <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(order.file_name)}</strong>
-        <small style="color:var(--text-muted);">${order.copies} × ${order.print_mode} · ${order.paper_size}</small></td>
+        <small style="color:var(--text-muted);">${order.copies} × ${order.print_mode.toUpperCase()} · ${order.paper_size || 'A4'} · ${sidesLabel}${rangeLabel}</small></td>
     <td><strong style="color:var(--success);">₹${(order.total_price || 0).toFixed(2)}</strong></td>
     <td>${pay}</td>
     <td><span class="badge-status badge-${order.status}">${order.status}</span></td>
@@ -868,9 +874,11 @@ function buildOrderRow(o) {
   const action = canCancel
     ? `<button class="btn-modern" style="font-size:.75rem;padding:4px 10px;" onclick="cancelOrder('${o.id}')">${t('cancel')}</button>`
     : `<span style="color:var(--text-muted);font-size:.75rem;">${t('cannot_cancel')}</span>`;
+  const sidesLabel = o.duplex ? 'Both sides' : '1-sided';
+  const rangeLabel = o.page_range && o.page_range !== 'all' ? ` · (${esc(o.page_range)})` : '';
   tr.innerHTML = `
     <td><strong style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(o.file_name)}</strong>
-        <small style="color:var(--text-muted);">${o.copies} × ${o.print_mode} · ${o.paper_size}</small></td>
+        <small style="color:var(--text-muted);">${o.copies} × ${(o.print_mode || 'bw').toUpperCase()} · ${o.paper_size || 'A4'} · ${sidesLabel}${rangeLabel}</small></td>
     <td><strong style="color:var(--success);">₹${(o.total_price || 0).toFixed(2)}</strong></td>
     <td>${pay}</td>
     <td><span class="badge-status badge-${o.status}">${o.status}</span></td>

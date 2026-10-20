@@ -150,9 +150,12 @@ def create_order(current_user):
     extension = _get_extension(filename)
     content_type = uploaded_file.mimetype or ''
 
-    print_mode = request.form.get('print_mode', 'bw').lower()
-    if print_mode not in {'bw', 'color'}:
-        return jsonify({"error": "Print mode must be 'color' or 'bw'."}), 400
+    raw_print_mode = request.form.get('print_mode', 'bw').lower()
+    print_mode = 'color' if 'color' in raw_print_mode else 'bw'
+
+    duplex_raw = (request.form.get('duplex') or '').lower()
+    sides_raw = (request.form.get('sides') or '').lower()
+    is_duplex = (duplex_raw in {'true', '1', 'yes', 'both'}) or (sides_raw == 'both') or ('_both' in raw_print_mode)
 
     copies_raw = request.form.get('copies', '1')
     if not copies_raw.isdigit() or int(copies_raw) < 1:
@@ -186,7 +189,7 @@ def create_order(current_user):
             return jsonify({"error": str(err)}), 400
     else:
         printed_pages = page_count
-        page_range = f"1-{page_count}" if page_count > 1 else '1'
+        page_range = 'all'
 
     if printed_pages < 1:
         return jsonify({"error": "At least one page must be selected for printing."}), 400
@@ -222,6 +225,7 @@ def create_order(current_user):
         copies=copies,
         page_range=page_range,
         paper_size=paper_size,
+        duplex=is_duplex,
         printed_pages=printed_pages,
         unit_rate=rate,
         multiplier=multiplier,
