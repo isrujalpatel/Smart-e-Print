@@ -9,6 +9,7 @@ from routes.auth import auth_bp
 from routes.orders import orders_bp
 from routes.super_admin import super_admin_bp
 from routes.shop import shop_bp
+from routes.payment import payment_bp
 from models.user import User
 from models.print_order import PrintOrder
 from models.audit_log import AuditLog
@@ -68,6 +69,7 @@ def create_app(config_class=Config):
     app.register_blueprint(orders_bp, url_prefix="/api/orders")
     app.register_blueprint(super_admin_bp, url_prefix="/api/super-admin")
     app.register_blueprint(shop_bp, url_prefix="/api/shop")
+    app.register_blueprint(payment_bp, url_prefix="/api/payment")
 
     # ── Health check ────────────────────────────────────────────────────────────
     @app.route("/")
