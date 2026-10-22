@@ -231,7 +231,7 @@ def create_order(current_user):
         multiplier=multiplier,
         total_price=total_price,
         payment_method=payment_method,
-        payment_status="pending" if payment_method == "online" else "pending_cash",
+        payment_status="paid" if (payment_method == "online" and (request.form.get("payment_status") or "").lower() == "paid") else ("pending" if payment_method == "online" else "pending_cash"),
         status="Submitted",
         created_at=datetime.now(timezone.utc),
     )

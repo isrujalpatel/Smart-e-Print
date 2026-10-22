@@ -36,6 +36,6 @@ class Config:
     # ── Google OAuth ─────────────────────────────────────────────────────────────
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
-    # ── Razorpay ──────────────────────────────────────────────────────────────────
-    RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
-    RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+    # ── Razorpay ────────────────────────────────────────────────────────────────
+    RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_Tqd9JNa8CAMWvp")
+    RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "zL6Capuoi0KwBROwKBkGD4Vb")

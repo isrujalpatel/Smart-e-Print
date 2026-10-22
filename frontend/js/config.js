@@ -12,6 +12,9 @@ const CONFIG = {
   TOKEN_KEY: 'seprint_token',
   USER_KEY:  'seprint_user',
 
+  // Razorpay Gateway
+  RAZORPAY_KEY_ID: 'rzp_test_Tqd9JNa8CAMWvp',
+
   // Page routes (relative paths)
   ROUTES: {
     LANDING:                'index.html',
